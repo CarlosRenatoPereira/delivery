@@ -1,0 +1,190 @@
+#root {
+  margin: 0;
+}
+
+body{
+display: block;
+  margin: 0;
+  overflow: hidden;
+}
+
+.card {
+  --elevation: 1;
+  --epx: calc(var(--elevation) * 1px);
+  
+  /* these 2 shadows serve as a border for  0-1 elevation    */
+  --shadow1: 0 0 1px rgba(0, 0, 0, .1);
+  --shadow2: 0 1px 2px rgba(0, 0, 0, .08);
+  
+  --offset-y: calc(var(--epx) + 1px);
+  --blur: calc(var(--epx) * 2);
+  --spread: calc(var(--epx) * .3);
+  --shadow3: 
+      0 var(--offset-y) 
+      var(--blur) 
+      var(--spread) 
+      rgba(0, 0, 0, 0.2);
+  
+  box-shadow: 
+    var(--shadow1),
+    var(--shadow2),
+    var(--shadow3);
+
+
+}
+
+ .card {
+  padding: 2px;
+  margin-left: 0.5rem;
+  margin-top: 0.7rem;
+  margin-bottom: 10px;
+  background: white;
+  border-radius: 15px;
+  width: 100px;
+  height: 75px;
+  display: grid;
+  align-items: center; 
+  justify-content: center;
+}
+
+.imgDiv {
+  text-align: center;
+}
+.img {
+  width: 65px;
+  height: 50px;
+}
+.titulo {
+  font-weight: bold;
+  font-family: Georgia, 'Times New Roman', Times, serif;
+  font-size: 10px;
+  padding-top: 3px;
+  text-overflow: ellipsis;
+  word-break: break-word;
+  overflow: hidden; 
+  text-align: center;
+}
+
+.header {
+  width: 100%;
+  height: 50px;
+  background-color: rgb(102, 170, 230);
+  display: grid;
+  grid-template-columns: 2% 15% 69%;
+  align-items: center;
+}
+
+.nomeEstabelecimento {
+  font-weight: bold;
+  font-family: Verdana;
+  font-size: 15px;
+  color: white;
+}
+
+.round {
+  border-radius: 100%;
+  overflow: hidden;
+  height: 40px;
+  width:40px;
+  background: white;
+}
+
+.imgHeader {
+  width: 100%;
+}
+
+.informacoes {
+  width: 100%;
+  height: 30px;
+  background-color: rgba(255, 255, 255, 0.979);
+  display: grid;
+  grid-template-columns: 2% 39% 33% 25%;
+  align-items: center;
+}
+
+.infoHorario {
+  border-radius: 3%;
+  background-color: rgb(137, 243, 146);
+  font-size: 9px;
+  font-weight: bold;
+  font-family: 'Lucida Sans', 'Lucida Sans Regular', 'Lucida Grande', 'Lucida Sans Unicode', Geneva, Verdana, sans-serif;
+  height: 15px;
+  display: flex;
+  align-items: center; 
+  justify-content: center;
+  opacity: 0.4;
+}
+.infoPedidoMinimo {
+  font-size: 9px;
+  font-weight: bold;
+  font-family: 'Lucida Sans', 'Lucida Sans Regular', 'Lucida Grande', 'Lucida Sans Unicode', Geneva, Verdana, sans-serif;
+  height: 15px;
+  display: flex;
+  align-items: center; 
+  justify-content: center;
+  opacity: 0.4;
+}
+
+.infoLoja {
+  font-size: 10px;
+  font-weight: bold;
+  font-family: Verdana, Geneva, Tahoma, sans-serif;
+  height: 15px;
+  align-items: center; 
+  justify-content: center;
+  color: rgb(27, 27, 192);
+  text-align: end;
+}
+
+.scroll-container {
+  max-height: 570px;
+  overflow-y: scroll;
+  border: 1px solid #ccc;
+  padding-left: 0.4rem;
+  padding-right: 0.7rem;
+}
+.scroll-content {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  gap: 7px;
+  justify-content: space-around;
+}
+
+
+.nomeProduto {
+  height:30px;
+  margin-top:12px;
+  margin-left:10px;
+  font-style:normal;
+  font-weight:700;
+  font-size:18px;
+  line-height:18px;
+  font-family: Verdana, Geneva, Tahoma, sans-serif;
+}
+
+.cardProduto {
+  padding: 2px;
+  margin-bottom: 10px;
+  background: rgba(245, 245, 245, 0.911);
+  border-radius: 2px;
+  width: 49%;
+  height: 106px;
+  display: grid;
+  grid-template-columns: 70% 30%;
+  align-items: center;
+  justify-content: center;
+}
+.imgDivProduto {
+  text-align: center;
+}
+.imgProduto {
+  width: 90px;
+  height: 90px;
+}
+
+@media(max-width: 774px) {
+  .cardProduto{
+    width: 100%;
+  }
+}
