@@ -5,6 +5,7 @@ import './App.css';
 import Card from './Componentes/Card.jsx';
 import Cabecalho from './Componentes/Cabecalho.jsx';
 import Informacoes from './Componentes/Informacoes.jsx';
+import Carrinho from './imagens/carrinho-de-compras.png';
 import CardapioCentral from './Componentes/CardapioCentral.jsx';
 const getItems = () => Array(7).fill(0).map((_, ind) => ({ id: `Sanduíches` }));
 
@@ -38,6 +39,13 @@ function App() {
       </ScrollMenu>
       <div className='nomeProduto'>Sanduíches</div>
       <CardapioCentral/>
+      <div className='footer'>
+        <div style={{textAlign:"center", fontWeight:"bold", color:"darkcyan"}}>
+           <img style={{width:"20px"}} src={Carrinho} alt="" />
+           <div><span>Carrinho</span></div>
+        </div>
+        <div style={{width:"5%"}} ></div>
+     </div>
      </div>
   );
 }

@@ -1,0 +1,56 @@
+.container {
+    display: grid;
+    grid-template-rows: 10% 10% 10% 20% 10% 10% 10% 10%;
+    width: 100%;
+    border-radius: 15px;
+    height: 100vh;
+}
+.topo {
+    display: flex;
+    color: #333;
+    align-items: center;
+    border-bottom-width: 2px;
+    border-bottom-style: solid; 
+    border-bottom-color: rgb(165, 165, 163);
+    flex-direction: row;
+    gap: 1rem;
+    justify-content: initial;
+}
+    .endereco {
+        background-color: #333;
+    }
+    .nomeLoja {
+        display: flex;
+        flex-direction: row;
+        color: #333;
+        font-size: 1.3rem;
+        font-stretch: ultra-condensed;
+        font-weight: 900;
+        gap: 1.5rem;
+        justify-content: initial;
+        align-items: center;
+    }
+
+    .horarioAtendimento {
+        display: flex;
+        flex-direction: row;
+        color: #494848;
+        font-size: 1.1rem;
+        font-stretch: ultra-condensed;
+        font-weight: 900;
+        gap: 1.5rem;
+        justify-content: initial;
+        align-items: center;
+        background-color: #d3d0d0;
+    }
+    .horarios{
+        display: flex;
+        flex-direction: column;
+        color: #7a7979;
+        font-size: 0.9rem;
+        font-stretch: semi-condensed;
+        font-weight: 500;
+        gap: 0.6;
+        justify-content: initial;
+        
+    }

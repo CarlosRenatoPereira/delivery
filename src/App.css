@@ -142,6 +142,7 @@ display: block;
   border: 1px solid #ccc;
   padding-left: 0.4rem;
   padding-right: 0.7rem;
+ background-color: rgba(235, 231, 231, 0.911);
 }
 .scroll-content {
   display: flex;
@@ -166,7 +167,7 @@ display: block;
 .cardProduto {
   padding: 2px;
   margin-bottom: 10px;
-  background: rgba(245, 245, 245, 0.911);
+  background: white;
   border-radius: 2px;
   width: 49%;
   height: 106px;
@@ -174,6 +175,8 @@ display: block;
   grid-template-columns: 70% 30%;
   align-items: center;
   justify-content: center;
+  border-radius: 10px;
+  box-shadow: 10px 5px 5px rgb(202, 201, 201);
 }
 .imgDivProduto {
   text-align: center;
@@ -181,6 +184,45 @@ display: block;
 .imgProduto {
   width: 90px;
   height: 90px;
+}
+.containarDescricaoProduto{
+  display: grid;
+  grid-template-rows: 30% 40% 30%;
+  height: 100%;
+  width: 100%;
+}
+
+.nomeLanche {
+font-weight: 800;
+font-stretch: extra-condensed;
+font-size: 15px;
+font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+padding: 4px;
+color: #707070;
+}
+
+.descricaoLanche {
+  padding: 4px;
+}
+
+.preco {
+  font-family: Arial, Helvetica, sans-serif;
+  padding: 4px;
+  font-weight: 900;
+  font-size: 15px;
+  font-stretch: extra-condensed;
+  color: #444343;
+}
+
+.footer {
+  position: sticky;
+  bottom: 0;
+  width: 100%;
+  height: 15%;
+  background-color: #f3f0f0;
+  display: flex;
+  justify-content: flex-end;
+  padding-top: 5px;
 }
 
 @media(max-width: 774px) {
