@@ -1,8 +1,9 @@
 .container {
     display: grid;
-    grid-template-rows: 10% 10% 10% 20% 10% 10% 10% 10%;
+    grid-template-rows: 8% 8% 8% 8% 8% 22% 8% 22%;
     width: 100%;
     border-radius: 15px;
+    gap: 3px;
     height: 100vh;
 }
 .topo {
@@ -17,7 +18,12 @@
     justify-content: initial;
 }
     .endereco {
-        background-color: #333;
+        display: flex;
+        flex-direction: row;
+        gap: 1.5rem;
+        justify-content: initial;
+        align-items: center;
+        color: #494848;
     }
     .nomeLoja {
         display: flex;
@@ -31,7 +37,7 @@
         align-items: center;
     }
 
-    .horarioAtendimento {
+    .horarioAtendimentoFormaPagamento {
         display: flex;
         flex-direction: row;
         color: #494848;
@@ -41,7 +47,13 @@
         gap: 1.5rem;
         justify-content: initial;
         align-items: center;
-        background-color: #d3d0d0;
+        background-color:  #ffef93;
+    }
+    .containerHorarios {
+        display: flex;
+        flex-direction: row;
+        gap: 1.5rem;
+        justify-content: initial;
     }
     .horarios{
         display: flex;
@@ -51,6 +63,5 @@
         font-stretch: semi-condensed;
         font-weight: 500;
         gap: 0.6;
-        justify-content: initial;
-        
+        justify-content: center;
     }

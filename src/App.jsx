@@ -40,7 +40,7 @@ function App() {
       <div className='nomeProduto'>Sanduíches</div>
       <CardapioCentral/>
       <div className='footer'>
-        <div style={{textAlign:"center", fontWeight:"bold", color:"darkcyan"}}>
+        <div style={{textAlign:"center", fontWeight:"bold", color:"rgb(238, 53, 53)"}}>
            <img style={{width:"20px"}} src={Carrinho} alt="" />
            <div><span>Carrinho</span></div>
         </div>
