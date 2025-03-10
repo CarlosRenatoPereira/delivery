@@ -10,7 +10,7 @@ function SobreLoja() {
         <div className='container'>
             <div className='topo'>
                 <div></div>
-               <Link to={"/loja"} style={{ textDecoration: 'none' }}><div><span style={{ fontSize: "25px", color:"red"}}><Icon icon="mdi:arrow-back" /></span></div></Link>
+               <Link to={"/"} style={{ textDecoration: 'none' }}><div><span style={{ fontSize: "25px", color:"red"}}><Icon icon="mdi:arrow-back" /></span></div></Link>
                 <div style={{fontStyle:"Arial", fontSize:"15px"}}><pre><span> Informações gerais</span></pre></div>
             </div>
             <div className='nomeLoja'>

@@ -12,6 +12,8 @@ import Typography from '@mui/material/Typography';
 import { styled } from '@mui/material/styles';
 import Dialog from '@mui/material/Dialog';
 import BootstrapDialog from '@mui/material/Dialog';
+import { Link } from 'react-router-dom';
+import { useState } from "react"
 
 function CardProdutos() {
    const [open, setOpen] = React.useState(false);
@@ -21,6 +23,16 @@ function CardProdutos() {
     };
     const handleClose = () => {
       setOpen(false);
+    };
+
+    const [hover, setHover] = useState(true);  
+
+    const handleMouseOver = () => {
+      setHover(false);
+    };
+  
+    const handleMouseOut = () => {
+      setHover(true);
     };
   
     return (
@@ -61,10 +73,13 @@ function CardProdutos() {
             <div className='descricaoLanche'>1 salsicha, 1 ovo de codorna, batata palha, milho, uva passas, bacon, molhos especiais</div>
             <div className='adicionais'>
               <div className='adicionaisTitulo'>
-
+                Acréscimos
               </div>
               <div className='adicionaisConteudo'>
-                
+                <div></div>
+                <div></div>
+                <div></div>
+                <div></div>
               </div>
             </div>
             <div className='observacoes'>
@@ -78,12 +93,14 @@ function CardProdutos() {
             </div>
             </Typography>
           </DialogContent>
-          <DialogActions>
+          <DialogActions style={{display:"grid", gridTemplateColumns:"30% 70%",padding:"0"}}>
             <BotaoMaisMenos></BotaoMaisMenos>
-            <div style={{width:"30%",height:"70px",backgroundColor:"rgb(238, 53, 53)",display:"grid",gridTemplateRows:"40% 55%",fontFamily:"Verdana",borderRadius:"6px",fontSize:"14px",color:"#ffef93"}}>
-              <div style={{justifyContent:"center", alignItems:"center",  display: 'flex',fontWeight:"bold"}}><span>Adicionar</span></div>
-              <div style={{justifyContent:"center", alignItems:"center",  display: 'flex',fontWeight:"bold"}}><span>R$ 14,00</span></div>
-            </div>
+            <Link to={"/Carrinho"} style={{ textDecoration: 'none',height:"50px",backgroundColor: hover ? 'rgb(238, 53, 53)': 'rgb(177, 38, 38)',display:"grid",gridTemplateRows:"40% 55%",fontFamily:"Verdana",borderRadius:"6px",fontSize:"14px",color:"#ffef93",margin:"10px"}} 
+                  onMouseOver={handleMouseOver}
+                  onMouseOut={handleMouseOut}>
+                <div style={{justifyContent:"center", alignItems:"center",  display: 'flex',fontWeight:"bold"}}><span>Adicionar ao Carrinho</span></div>
+                <div style={{justifyContent:"center", alignItems:"center",  display: 'flex',fontWeight:"bold"}}><span>R$ 14,00</span></div>
+            </Link>
           </DialogActions>
         </BootstrapDialog>
       </React.Fragment>

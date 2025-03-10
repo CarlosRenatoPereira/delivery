@@ -5,6 +5,7 @@
     border-radius: 15px;
     gap: 3px;
     height: 100vh;
+    background-color: white;
 }
 .topo {
     display: flex;

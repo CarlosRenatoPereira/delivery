@@ -1,0 +1,29 @@
+.quantity-control {
+    display: flex;
+    align-items: center;
+  }
+  
+  .control-button {
+    background-color: rgb(238, 53, 53);
+    color: #fff;
+    border: none;
+    padding: 5px 10px;
+    cursor: pointer;
+    border-radius: 5px;
+    margin: 0 5px;
+  }
+  
+  .control-button:hover {
+    background-color: #c72e2e;
+  }
+  
+  .trash-button {
+    padding: 5px;
+    font-size: 16px;
+  }
+  
+  .quantity {
+    min-width: 20px;
+    text-align: center;
+  }
+  

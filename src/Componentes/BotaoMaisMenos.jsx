@@ -42,17 +42,17 @@ export default function QuantityCounter() {
   };
 
   return (
-    <div className="flex items-center gap-2 w-fit">
-      <Button onClick={decrement} style={{width:"25px",backgroundColor: hover ? '#dcdcdc' : 'white',minWidth:"30px"}}
+    <div style={{display:"flex",width:"100%"}}>
+      <Button onClick={decrement} style={{width:"9%",backgroundColor: hover ? '#dcdcdc' : 'white',minWidth:"30px"}}
       onMouseOver={handleMouseOver}
       onMouseOut={handleMouseOut}>
-        <MinusIcon style={{width:"15px",color:"red"}}/>
+        <MinusIcon style={{color:"red"}}/>
       </Button>
-      <input style={{width:"40px",height:"25px",textAlign: "center"}}
+      <input style={{width:"80%",height:"23px",textAlign: "center"}}
         value={value}
         onChange={handleChange}
       />
-      <Button onClick={increment} style={{width:"25px",backgroundColor: hover2 ? '#dcdcdc' : 'white',minWidth:"30px"}} 
+      <Button onClick={increment} style={{width:"9%",backgroundColor: hover2 ? '#dcdcdc' : 'white',minWidth:"30px"}} 
       onMouseOver={handleMouseOver2}
       onMouseOut={handleMouseOut2}>
         <PlusIcon style={{color:"darkgreen"}}/>
