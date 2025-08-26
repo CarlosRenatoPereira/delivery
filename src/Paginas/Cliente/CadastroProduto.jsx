@@ -43,10 +43,19 @@ export default function CadastroProduto() {
       { id: 3, nome: 'Batata Frita' }
     ]);
   }, []);
+const handleTabChange = (_, newValue) => {
+  setTabIndex(newValue);
+  setProdutoTabIndex(0); // sempre que muda a aba principal, resetar subaba
+};
 
-  const handleTabChange = (_, newValue) => setTabIndex(newValue);
-  const handleProdutoTabChange = (_, newValue) => setProdutoTabIndex(newValue);
+const handleProdutoTabChange = (_, newValue) => {
+  setProdutoTabIndex(newValue);
+  setOpcaoTabIndex(0)
+};
 
+const handleTabChangeOpcao = (_, newValue) => {
+  setOpcaoTabIndex(newValue);
+};
   const handleImageChange = (event, setter, field = 'imagem') => {
     const file = event.target.files[0];
     if (file && file.size > 1024 * 1024) {
@@ -134,10 +143,12 @@ export default function CadastroProduto() {
          }}>
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
             <TextField
-              label="Nome da Categoria"
-              value={categoria.nome}
-              onChange={(e) => setCategoria({ ...categoria, nome: e.target.value })}
-              fullWidth
+            label="Nome da Categoria"
+            value={categoria.nome}
+            onChange={(e) => setCategoria({ ...categoria, nome: e.target.value })}
+            fullWidth
+            inputProps={{ maxLength: 50 }} 
+            helperText={`${categoria.nome.length}/50`} // 👈 contador de caracteres
             />
             <Button variant="outlined" component="label">
               Selecionar Imagem (máx. 1MB)
@@ -182,13 +193,42 @@ export default function CadastroProduto() {
                 </FormControl>
 
                 <TextField label="Nome do Produto" value={produto.nome}
-                  onChange={(e) => setProduto({ ...produto, nome: e.target.value })} fullWidth />
+                  onChange={(e) => setProduto({ ...produto, nome: e.target.value })} fullWidth 
+                  inputProps={{ maxLength: 50 }} 
+                  helperText={`${produto.nome.length}/50`} />
 
                 <TextField label="Descrição" multiline minRows={3} value={produto.descricao}
-                  onChange={(e) => setProduto({ ...produto, descricao: e.target.value })} fullWidth />
+                  onChange={(e) => setProduto({ ...produto, descricao: e.target.value })} fullWidth 
+                  inputProps={{ maxLength: 50 }} 
+                  helperText={`${produto.descricao.length}/50`} />
 
-                <TextField label="Preço" type="text" value={produto.preco}
-                  onChange={(e) => setProduto({ ...produto, preco: e.target.value })} fullWidth helperText="Use ponto ou vírgula para centavos" />
+                <TextField
+                label="Preço"
+                value={produto.preco}
+                onChange={(e) => {
+                    // Mantém apenas números
+                    let raw = e.target.value.replace(/\D/g, "");
+
+                    // Se não digitar nada, zera
+                    if (!raw) {
+                    setProduto({ ...produto, preco: "" });
+                    return;
+                    }
+
+                    // Garante ao menos 3 dígitos para conseguir separar reais e centavos
+                    if (raw.length === 1) raw = "0" + raw;
+                    if (raw.length === 2) raw = "0" + raw;
+
+                    // Formata: últimos 2 dígitos = centavos
+                    const reais = raw.slice(0, -2);
+                    const centavos = raw.slice(-2);
+                    const valorFormatado = `${parseInt(reais, 10)},${centavos}`;
+
+                    setProduto({ ...produto, preco: valorFormatado });
+                }}
+                fullWidth
+                inputProps={{ maxLength: 15 }} // evita números absurdamente grandes
+                />
 
                 <TextField label="Qtd Máx de Acréscimos por Produto" type="number"
                   value={produto.quantidadeMaximaAcrescimoPorProduto}
@@ -223,9 +263,39 @@ export default function CadastroProduto() {
                 overflowY: 'auto',
             }}>
               <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                <TextField label="Nome do Acréscimo" value={acrescimo.nome} onChange={(e) => setAcrescimo({ ...acrescimo, nome: e.target.value })} fullWidth />
-                <TextField label="Descrição" multiline value={acrescimo.descricao} onChange={(e) => setAcrescimo({ ...acrescimo, descricao: e.target.value })} fullWidth />
-                <TextField label="Preço" type="number" value={acrescimo.preco} onChange={(e) => setAcrescimo({ ...acrescimo, preco: e.target.value })} fullWidth />
+                <TextField label="Nome do Acréscimo" value={acrescimo.nome} onChange={(e) => setAcrescimo({ ...acrescimo, nome: e.target.value })} fullWidth
+                  inputProps={{ maxLength: 50 }} 
+                  helperText={`${produto.descricao.length}/50`} />
+                <TextField label="Descrição" multiline value={acrescimo.descricao} onChange={(e) => setAcrescimo({ ...acrescimo, descricao: e.target.value })} fullWidth 
+                  inputProps={{ maxLength: 50 }} 
+                  helperText={`${produto.descricao.length}/50`} />
+                <TextField
+                label="Preço"
+                value={acrescimo.preco}
+                onChange={(e) => {
+                    // Mantém apenas números
+                    let raw = e.target.value.replace(/\D/g, "");
+
+                    // Se não digitar nada, zera
+                    if (!raw) {
+                    setAcrescimo({ ...acrescimo, preco: "" });
+                    return;
+                    }
+
+                    // Garante ao menos 3 dígitos para conseguir separar reais e centavos
+                    if (raw.length === 1) raw = "0" + raw;
+                    if (raw.length === 2) raw = "0" + raw;
+
+                    // Formata: últimos 2 dígitos = centavos
+                    const reais = raw.slice(0, -2);
+                    const centavos = raw.slice(-2);
+                    const valorFormatado = `${parseInt(reais, 10)},${centavos}`;
+
+                    setAcrescimo({ ...acrescimo, preco: valorFormatado });
+                }}
+                fullWidth
+                inputProps={{ maxLength: 15 }} // evita números absurdamente grandes
+                />
                 <TextField label="Qtd Máx Individual" type="number" value={acrescimo.quantidadeMaximaIndividual} onChange={(e) => setAcrescimo({ ...acrescimo, quantidadeMaximaIndividual: e.target.value })} fullWidth />
                 <FormControl fullWidth>
                   <InputLabel>Status</InputLabel>
@@ -274,7 +344,7 @@ export default function CadastroProduto() {
           {/* Subaba Categorias de Opção */}
           {produtoTabIndex === 2 && (
             <Box sx={{ mt: 1, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
-              <Tabs value={opcaoTabIndex} onChange={(_, v) => setOpcaoTabIndex(v)} variant="scrollable" scrollButtons="auto">
+              <Tabs value={opcaoTabIndex} onChange={handleTabChangeOpcao} variant="scrollable" scrollButtons="auto">
                 <Tab label="Categoria" />
                 <Tab label="Itens" />
               </Tabs>
@@ -288,7 +358,9 @@ export default function CadastroProduto() {
                     overflowY: 'auto',
                 }}>
                   <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                    <TextField label="Nome da Categoria" value={categoriaOpcao.nome} onChange={(e) => setCategoriaOpcao({ ...categoriaOpcao, nome: e.target.value })} fullWidth />
+                    <TextField label="Nome" value={categoriaOpcao.nome} onChange={(e) => setCategoriaOpcao({ ...categoriaOpcao, nome: e.target.value })} fullWidth
+                     inputProps={{ maxLength: 50 }} 
+                     helperText={`${produto.descricao.length}/50`} />
                     <TextField label="Quantidade de Escolhas por Produto" type="number" value={categoriaOpcao.quantidadeEscolhaPorProduto} onChange={(e) => setCategoriaOpcao({ ...categoriaOpcao, quantidadeEscolhaPorProduto: e.target.value })} fullWidth />
                     <FormControl fullWidth>
                       <InputLabel>Status</InputLabel>
@@ -306,15 +378,43 @@ export default function CadastroProduto() {
               {/* Subaba Opção */}
               {opcaoTabIndex === 1 && (
                 <Paper sx={{
-                    p: 3,
-                    mt: 2,
                     maxHeight: { xs: 'calc(100vh - 210px)', md: 'calc(100vh - 240px)' },
                     overflowY: 'auto',
                 }}>
-                  <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                    <TextField label="Nome da Opção" fullWidth />
-                    <TextField label="Descrição" fullWidth multiline minRows={2} />
-                    <TextField label="Preço" type="text" helperText="Use ponto ou vírgula para centavos" fullWidth />
+                  <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2,overflowY: 'auto',}}>
+                    <TextField label="Nome" fullWidth
+                     inputProps={{ maxLength: 50 }} 
+                     helperText={`${produto.descricao.length}/50`} />
+                    <TextField label="Descrição" fullWidth multiline minRows={2}
+                      inputProps={{ maxLength: 50 }} 
+                      helperText={`${produto.descricao.length}/50`} />
+                    <TextField
+                        label="Preço"
+                        value={acrescimo.preco}
+                        onChange={(e) => {
+                            // Mantém apenas números
+                            let raw = e.target.value.replace(/\D/g, "");
+
+                            // Se não digitar nada, zera
+                            if (!raw) {
+                            setAcrescimo({ ...acrescimo, preco: "" });
+                            return;
+                            }
+
+                            // Garante ao menos 3 dígitos para conseguir separar reais e centavos
+                            if (raw.length === 1) raw = "0" + raw;
+                            if (raw.length === 2) raw = "0" + raw;
+
+                            // Formata: últimos 2 dígitos = centavos
+                            const reais = raw.slice(0, -2);
+                            const centavos = raw.slice(-2);
+                            const valorFormatado = `${parseInt(reais, 10)},${centavos}`;
+
+                            setAcrescimo({ ...acrescimo, preco: valorFormatado });
+                        }}
+                        fullWidth
+                        inputProps={{ maxLength: 15 }} // evita números absurdamente grandes
+                    />
                     <FormControl fullWidth>
                       <InputLabel>Status</InputLabel>
                       <Select defaultValue={1}>
