@@ -4,6 +4,7 @@ import App from '../App.jsx';
 import SobreLoja from './SobreLoja.jsx';
 import Carrinho from './Carrinho.jsx';
 import LoginCadastro from './Cliente/LoginCadastro.jsx';
+import CadastroProduto from './Cliente/CadastroProduto.jsx';
 function Rotas() {
   return (
     <BrowserRouter>
@@ -11,6 +12,7 @@ function Rotas() {
             <Route path='/loja/:slug' element={<App/>}></Route>
             <Route path='/SobreLoja' element={<SobreLoja/>}></Route>
             <Route path='/logincadastro' element={<LoginCadastro/>}></Route>
+             <Route path='/cadastroProduto' element={<CadastroProduto/>}></Route>
             <Route path='/Carrinho' element={<Carrinho/>}></Route>
             <Route path='*' element={<h1>Not Found</h1>}></Route>
         </Routes>
