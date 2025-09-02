@@ -11,9 +11,9 @@ import {
 } from '@mui/material';
 import axios from 'axios';
 
-  export default function LoginCadastro() {
+export default function LoginCadastro() {
   const [tabValue, setTabValue] = useState(0);
-  const [formLogin, setFormLogin] = useState({ nome_usuario: '', senha: '' });
+  const [formLogin, setFormLogin] = useState({ nomeusuario: '', senha: '' });
   const [formCadastro, setFormCadastro] = useState({
     nome: '',
     cep: '',
@@ -23,50 +23,57 @@ import axios from 'axios';
     bairro: '',
     uf: '',
     cidade: '',
-    nome_loja: '',
+    nomeloja: '',
     telefone: '',
     email: '',
-    cpf_cnpj: '',
-    nome_usuario: '',
+    cpfcnpj: '',
+    nomeusuario: '',
     senha: '',
     repetir_senha: ''
   });
   const [mensagem, setMensagem] = useState('');
   const [erros, setErros] = useState({});
 
-const handleLogin = async () => {
-  setMensagem('');
-  try {
-    const payload = {
-      nomeUsuario: formLogin.nome_usuario,
-      senha: formLogin.senha,
-    };
-
-    if (!formLogin.nome_usuario || !formLogin.senha) {
+  // ------------------------------
+  // LOGIN
+  // ------------------------------
+  const handleLogin = async () => {
+    setMensagem('');
+    if (!formLogin.nomeusuario || !formLogin.senha) {
       setMensagem('Preencha todos os campos de login.');
       return;
     }
-    const response = await axios.post('https://localhost:7039/api/Auth/login', payload);
 
-    const { token, nomeUsuario, tipoAcesso } = response.data;
+    try {
+      const payload = {
+        nomeUsuario: formLogin.nomeusuario,
+        senha: formLogin.senha
+      };
 
-    // Armazene o token no localStorage (ou outro método desejado)
-    sessionStorage.setItem('token', token);
+      const response = await axios.post(
+        'https://localhost:7039/api/Auth/login',
+        payload,
+        { withCredentials: true } // ✅ envia cookie HttpOnly
+      );
 
-    setMensagem(`Login bem-sucedido! Bem-vindo(a), ${nomeUsuario} (${tipoAcesso}).`);
+      const { nomeUsuario, tipoAcesso } = response.data;
 
-    // Aqui você pode redirecionar para o painel ou outra página
-    // Exemplo: navigate('/dashboard'); — se estiver usando react-router
+      setMensagem(`Login bem-sucedido! Bem-vindo(a), ${nomeUsuario} (${tipoAcesso}).`);
 
-  } catch (error) {
-    if (error.response && error.response.status === 401) {
-      setMensagem(error.response.data.mensagem || 'Usuário ou senha inválidos.');
-    } else {
-      setMensagem('Erro ao realizar login. Tente novamente mais tarde.');
+      // Aqui você pode redirecionar para painel
+      // Ex: navigate('/dashboard');
+    } catch (error) {
+      if (error.response && error.response.status === 401) {
+        setMensagem(error.response.data.mensagem || 'Usuário ou senha inválidos.');
+      } else {
+        setMensagem('Erro ao realizar login. Tente novamente mais tarde.');
+      }
     }
-  }
-};
+  };
 
+  // ------------------------------
+  // CADASTRO CLIENTE
+  // ------------------------------
   const validarCampos = () => {
     const novosErros = {};
     for (const [key, value] of Object.entries(formCadastro)) {
@@ -94,24 +101,11 @@ const handleLogin = async () => {
         }));
         setMensagem('');
       } else {
-        setFormCadastro((prev) => ({
-          ...prev,
-          logradouro: '',
-          bairro: '',
-          cidade:'',
-          uf: ''
-        }));
+        setFormCadastro((prev) => ({ ...prev, logradouro: '', bairro: '', cidade: '', uf: '' }));
         setMensagem('CEP não encontrado.');
       }
     } catch (error) {
-      console.error('Erro ao buscar CEP:', error);
-      setFormCadastro((prev) => ({
-          ...prev,
-          logradouro: '',
-          bairro: '',
-          cidade:'',
-          uf: ''
-        }));
+      setFormCadastro((prev) => ({ ...prev, logradouro: '', bairro: '', cidade: '', uf: '' }));
       setMensagem('Erro ao buscar CEP.');
     }
   };
@@ -121,34 +115,53 @@ const handleLogin = async () => {
 
     try {
       const { repetir_senha, ...dadosEnvio } = formCadastro;
-      const response = await axios.post('https://localhost:7039/api/cliente/cadastro', dadosEnvio);
-      setMensagem(response.data.mensagem || 'Cadastro realizado com sucesso!');
+
+      await axios.post(
+        'https://localhost:7039/api/Cliente/cadastro',
+        dadosEnvio,
+        { withCredentials: true } // ✅ caso backend use cookie JWT
+      );
+
+      setMensagem('Cadastro realizado com sucesso!');
+      setFormCadastro({
+        nome: '',
+        cep: '',
+        logradouro: '',
+        numero: '',
+        complemento: '',
+        bairro: '',
+        uf: '',
+        cidade: '',
+        nomeloja: '',
+        telefone: '',
+        email: '',
+        cpfcnpj: '',
+        nomeusuario: '',
+        senha: '',
+        repetir_senha: ''
+      });
+      setErros({});
     } catch (error) {
       console.error('Erro ao cadastrar:', error);
       setMensagem('Erro ao realizar cadastro.');
     }
   };
 
+  // ------------------------------
+  // TAB CHANGE
+  // ------------------------------
   const handleTabChange = (event, newValue) => {
     setTabValue(newValue);
     setMensagem('');
     setErros({});
   };
 
+  // ------------------------------
+  // JSX
+  // ------------------------------
   return (
-    <Box
-      sx={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', bgcolor: '#f5f5f5', p: 2 }}
-    >
-      <Paper
-        elevation={6}
-        sx={{
-          width: 600,
-          maxHeight: '90vh',
-          overflowY: 'auto',
-          p: 4,
-          borderRadius: 3,
-        }}
-      >
+    <Box sx={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', bgcolor: '#f5f5f5', p: 2 }}>
+      <Paper elevation={6} sx={{ width: 600, maxHeight: '90vh', overflowY: 'auto', p: 4, borderRadius: 3 }}>
         <Typography variant="h4" align="center" gutterBottom>
           Bem-vindo
         </Typography>
@@ -164,8 +177,8 @@ const handleLogin = async () => {
               fullWidth
               label="Nome de Usuário"
               margin="normal"
-              value={formLogin.nome_usuario}
-              onChange={(e) => setFormLogin({ ...formLogin, nome_usuario: e.target.value })}
+              value={formLogin.nomeusuario}
+              onChange={(e) => setFormLogin({ ...formLogin, nomeusuario: e.target.value })}
             />
             <TextField
               fullWidth
@@ -190,7 +203,7 @@ const handleLogin = async () => {
           <Box component="form" noValidate autoComplete="off">
             <Grid container spacing={2}>
               {Object.entries(formCadastro).map(([key, value]) => (
-                <Grid item xs={12} sm={key === 'senha' || key === 'nome_usuario' || key === 'repetir_senha' ? 6 : 12} key={key}>
+                <Grid item xs={12} sm={key === 'senha' || key === 'nomeusuario' || key === 'repetir_senha' ? 6 : 12} key={key}>
                   <TextField
                     fullWidth
                     label={key === 'nome' ? 'Nome da Empresa' : key.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}

@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState } from 'react';
 import {
   Tabs, Tab, Box, TextField, Button, Paper, MenuItem, Select, InputLabel, FormControl, Input,
-  TableContainer, Table, TableHead, TableRow, TableCell, TableBody, Checkbox, Alert
+  TableContainer, Table, TableHead, TableRow, TableCell, TableBody, Checkbox, Alert,
+  Dialog,DialogTitle,DialogContent,DialogContentText,DialogActions 
 } from '@mui/material';
 
 // Dica: caso sua aplicação tenha um layout com height: 100vh e overflow: hidden no body/#root,
@@ -11,38 +12,70 @@ export default function CadastroProduto() {
   const [tabIndex, setTabIndex] = useState(0); // abas principais
   const [produtoTabIndex, setProdutoTabIndex] = useState(0); // subabas de produto
   const [opcaoTabIndex, setOpcaoTabIndex] = useState(0); // subabas de categoria de opção
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [acaoSalvar, setAcaoSalvar] = useState(null); // aqui guardo qual botão chamou
+  const [categoriaFiltro, setCategoriaFiltro] = useState("");
+  // === ATUALIZAR CATEGORIAS E PRODUTOS ===
+  const [atualizarCategoria, setAtualizarCategoria] = useState(0); // subabas de produto
+  const [atualizarProduto, setAtualizarProduto] = useState(0); // subabas de categoria de opção
 
   // === ESTADOS ===
-  const [categoria, setCategoria] = useState({ nome: '', imagem: null });
+  const [categoria, setCategoria] = useState({ nome: '', imagem: null ,arquivo: null,preview: null});
   const [produto, setProduto] = useState({
-    nome: '', descricao: '', preco: '', imagem: null, categoriaId: '',
-    quantidadeMaximaAcrescimoPorProduto: '', quantidadeOpcoesAEscolher: '', status: 1
+    nome: '', descricao: '', preco: '', imagem: null, idCategoria: '',
+    quantidadeMaximaAcrescimoPorProduto: null, status: 1,arquivo: null,preview: null, nomeCategoria: ''
   });
   const [acrescimo, setAcrescimo] = useState({
-    nome: '', descricao: '', preco: '', imagem: null, quantidadeMaximaIndividual: '', status: 1
+    nome: '', descricao: '', preco: '', imagem: null, quantidadeMaximaIndividual: '', status: 1,arquivo: null,preview: null
   });
   const [categoriaOpcao, setCategoriaOpcao] = useState({
-    nome: '', imagem: null, quantidadeEscolhaPorProduto: '', status: 1
+    nome: '', quantidadeEscolhaPorProduto: '', status: 1
   });
 
+    const [opcao, setOpcao] = useState({
+    nome: '', descricao: '', status: 1,preco:'',arquivo: null,preview: null
+  });
   const [categoriasDisponiveis, setCategoriasDisponiveis] = useState([]);
   const [produtosDisponiveis, setProdutosDisponiveis] = useState([]);
   const [produtosSelecionados, setProdutosSelecionados] = useState({});
 
   const [msg, setMsg] = useState(null);
 
-  useEffect(() => {
-    // Simula carregamento de categorias e produtos
-    setCategoriasDisponiveis([
-      { id: 1, nome: 'Bebidas' },
-      { id: 2, nome: 'Lanches' }
-    ]);
-    setProdutosDisponiveis([
-      { id: 1, nome: 'Coca-Cola' },
-      { id: 2, nome: 'Cheeseburger' },
-      { id: 3, nome: 'Batata Frita' }
-    ]);
-  }, []);
+useEffect(() => {
+  const fetchCategorias = async () => {
+    try {
+      const response = await fetch("https://localhost:7039/api/Categoria", {
+        method: "GET",
+        credentials: "include" // <- ESSENCIAL para enviar cookies
+      });
+      const data = await response.json();
+      setCategoriasDisponiveis(data);
+    } catch (error) {
+      console.error("Erro ao buscar categorias:", error);
+    }
+  };
+
+  fetchCategorias();
+}, [atualizarCategoria]);
+
+useEffect(() => {
+  const fetchProdutos = async () => {
+    try {
+      const response = await fetch("https://localhost:7039/api/Produto", {
+        method: "GET",
+        credentials: "include" // <- ESSENCIAL para enviar cookies
+      });
+      const data = await response.json();
+      console.log(data);
+      setProdutosDisponiveis(data);
+    } catch (error) {
+      console.error("Erro ao buscar categorias:", error);
+    }
+  };
+
+  fetchProdutos();
+}, [atualizarProduto]);
+
 const handleTabChange = (_, newValue) => {
   setTabIndex(newValue);
   setProdutoTabIndex(0); // sempre que muda a aba principal, resetar subaba
@@ -56,47 +89,161 @@ const handleProdutoTabChange = (_, newValue) => {
 const handleTabChangeOpcao = (_, newValue) => {
   setOpcaoTabIndex(newValue);
 };
-  const handleImageChange = (event, setter, field = 'imagem') => {
-    const file = event.target.files[0];
-    if (file && file.size > 1024 * 1024) {
-      alert('A imagem deve ter no máximo 1MB');
-    } else {
-      setter(prev => ({ ...prev, [field]: file }));
-    }
-  };
+const handleImageChange = (event, setter, field = 'imagem') => {
+  const file = event.target.files[0];
 
-  const handleCheckboxChange = (produtoId) => {
-    setProdutosSelecionados(prev => ({ ...prev, [produtoId]: !prev[produtoId] }));
+  if (!file) return;
+  const previewUrl = URL.createObjectURL(file);
+  setter(prev => ({ ...prev, arquivo: file, preview: previewUrl})); 
+
+  if (file.size > 1024 * 1024) {
+    alert('A imagem deve ter no máximo 1MB');
+    return;
+  }
+
+  const reader = new FileReader();
+  reader.onloadend = () => {
+    // o resultado vem como base64
+    setter(prev => ({ ...prev, [field]: reader.result.split(",")[1] })); 
+    // split(",")[1] -> remove o prefixo "data:image/png;base64,"
   };
+  reader.readAsDataURL(file);
+};
 
   const selectedProdutoIds = useMemo(() =>
-    Object.entries(produtosSelecionados)
-      .filter(([, v]) => !!v)
-      .map(([k]) => Number(k)),
-  [produtosSelecionados]);
+  Object.entries(produtosSelecionados)
+    .filter(([, v]) => !!v) // pega só os que estão true
+    .map(([k]) => Number(k)), // transforma chave em número
+[produtosSelecionados]);
 
   // === VALIDAÇÕES SIMPLES ===
   const req = (v) => v !== undefined && v !== null && String(v).trim() !== '';
   const isNumber = (v) => v === '' || /^\d+(,\d{1,2}|\.\d{1,2})?$/.test(String(v));
 
   // === HANDLERS DE SALVAR (mock) ===
-  const salvarCategoria = () => {
-    if (!req(categoria.nome)) return setMsg({ type: 'error', text: 'Informe o nome da categoria.' });
-    setMsg({ type: 'success', text: 'Categoria salva (mock).' });
-  };
+const salvarCategoria = async () => {
+  if (!req(categoria.nome)) {
+    return setMsg({ type: 'error', text: 'Informe o nome da categoria.' });
+  }
+  try {
+    const response = await fetch("https://localhost:7039/api/Categoria", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        nome: categoria.nome,
+        imagem: categoria.imagem
+      }),
+      credentials: "include" // ✅ envia cookies HTTP-only
+    });
 
-  const salvarProduto = () => {
+    if (response.ok) {
+      const data = await response.json();
+       setCategoria({
+        nome: '',
+        imagem: null,
+        arquivo: null,
+        preview: null
+      });
+      setMsg({ type: "success", text: "Categoria salva com sucesso!" });
+      setAtualizarCategoria(atualizarCategoria + 1);
+    } else {
+      const error = await response.json();
+      setMsg({ type: "error", text: "Erro ao salvar categoria: " + error.message });
+    }
+  } catch (err) {
+    setMsg({ type: "error", text: "Erro de conexão com servidor." });
+  }
+};
+
+const confirmarSalvar = () => {
+  setConfirmOpen(false);
+  if (acaoSalvar === "produto") salvarProduto();
+  if (acaoSalvar === "categoria") salvarCategoria();
+  if (acaoSalvar === "acrescimo") salvarAcrescimo();
+};
+
+  const salvarProduto = async () => {
+    console.log(produto);
     if (!req(produto.nome)) return setMsg({ type: 'error', text: 'Informe o nome do produto.' });
-    if (!req(produto.categoriaId)) return setMsg({ type: 'error', text: 'Selecione a categoria do produto.' });
-    if (!isNumber(produto.preco)) return setMsg({ type: 'error', text: 'Preço inválido.' });
-    setMsg({ type: 'success', text: 'Produto salvo (mock).' });
+    if (!req(produto.idCategoria)) return setMsg({ type: 'error', text: 'Selecione a categoria do produto.' });
+    if (!isNumber(produto.preco) || produto.preco =="") return setMsg({ type: 'error', text: 'Preço inválido.' });
+    try {
+    const response = await fetch("https://localhost:7039/api/Produto", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        nome: produto.nome,
+        idCategoria: produto.idCategoria,
+        nomeCategoria: produto.nomeCategoria,
+        descricao: produto.descricao,
+        quantidadeMaximaAcrescimoPorProduto: Number(produto.quantidadeMaximaAcrescimoPorProduto) || null,
+        preco: produto.preco.replace(",", "."),
+        status: produto.status,
+        imagem: produto.imagem
+      }),
+      credentials: "include" // ✅ envia cookies HTTP-only
+    });
+
+    if (response.ok) {
+      const data = await response.json();
+       setProduto({
+          nome: '', descricao: '', preco: '', imagem: null, idCategoria: '',
+          quantidadeMaximaAcrescimoPorProduto: '', status: 1,arquivo: null,preview: null,nomeCategoria:''
+      });
+      setMsg({ type: "success", text: "Produto salva com sucesso!" });
+      setAtualizarProduto(atualizarProduto + 1);
+    } else {
+      const error = await response.json();
+      setMsg({ type: "error", text: "Erro ao salvar Produto: " + error.message });
+    }
+  } catch (err) {
+    setMsg({ type: "error", text: "Erro de conexão com servidor." });
+  }
   };
 
-  const salvarAcrescimo = () => {
+  const salvarAcrescimo = async () =>{
     if (!req(acrescimo.nome)) return setMsg({ type: 'error', text: 'Informe o nome do acréscimo.' });
-    if (!isNumber(acrescimo.preco)) return setMsg({ type: 'error', text: 'Preço do acréscimo inválido.' });
+    if (!isNumber(acrescimo.preco) || acrescimo.preco =="") return setMsg({ type: 'error', text: 'Preço do acréscimo inválido.' });
     if (selectedProdutoIds.length === 0) return setMsg({ type: 'error', text: 'Selecione ao menos um produto para vincular.' });
-    setMsg({ type: 'success', text: `Acréscimo salvo (mock). Produtos vinculados: ${selectedProdutoIds.join(', ')}` });
+
+    try {
+    const response = await fetch("https://localhost:7039/api/Acrescimo", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        nome: acrescimo.nome,
+        idProduto: selectedProdutoIds,
+        descricao: acrescimo.descricao,
+        quantidadeMaximaAcrescimoPorProduto: Number(acrescimo.quantidadeMaximaAcrescimoPorProduto) || null,
+        preco: acrescimo.preco.replace(",", "."),
+        status: acrescimo.status,
+        imagem: acrescimo.imagem,
+
+      }),
+      credentials: "include" // ✅ envia cookies HTTP-only
+    });
+
+    if (response.ok) {
+      const data = await response.json();
+       setProduto({
+          nome: '', descricao: '', preco: '', imagem: null, idCategoria: '',
+          quantidadeMaximaAcrescimoPorProduto: '', status: 1,arquivo: null,preview: null,nomeCategoria:''
+      });
+      setMsg({ type: "success", text: "Produto salva com sucesso!" });
+      setAtualizarProduto(atualizarProduto + 1);
+    } else {
+      const error = await response.json();
+      setMsg({ type: "error", text: "Erro ao salvar Produto: " + error.message });
+    }
+  } catch (err) {
+    setMsg({ type: "error", text: "Erro de conexão com servidor." });
+  }
   };
 
   const salvarCategoriaOpcao = () => {
@@ -155,8 +302,17 @@ const handleTabChangeOpcao = (_, newValue) => {
               <input hidden accept="image/*" type="file"
                      onChange={(e) => handleImageChange(e, setCategoria)} />
             </Button>
-            {categoria.imagem && <p>Imagem selecionada: {categoria.imagem.name}</p>}
-            <Button variant="contained" onClick={salvarCategoria}>Salvar Categoria</Button>
+           {categoria.arquivo && (
+              <div style={{ marginTop: "1rem" }}>
+                <p>Imagem selecionada: {categoria.arquivo.name}</p>
+                <img
+                  src={categoria.preview}
+                  alt="Pré-visualização"
+                  style={{ maxWidth: "200px", borderRadius: "8px", maxHeight:"100px" }}
+                />
+              </div>
+            )}
+            <Button variant="contained" onClick={() => { setAcaoSalvar("categoria"); setConfirmOpen(true); }}>Salvar Categoria</Button>
           </Box>
         </Paper>
       )}
@@ -182,12 +338,23 @@ const handleTabChangeOpcao = (_, newValue) => {
                 <FormControl fullWidth>
                   <InputLabel>Categoria</InputLabel>
                   <Select
-                    value={produto.categoriaId}
-                    onChange={(e) => setProduto({ ...produto, categoriaId: e.target.value })}
+                    value={produto.idCategoria || ""}
+                    onChange={(e) => {
+                      const categoriaSelecionada = categoriasDisponiveis.find(
+                        (cat) => cat.id === e.target.value
+                      );
+                      setProduto({
+                        ...produto,
+                        idCategoria: e.target.value,
+                        nomeCategoria: categoriaSelecionada ? categoriaSelecionada.nome : "",
+                      });
+                    }}
                     label="Categoria"
                   >
                     {categoriasDisponiveis.map((cat) => (
-                      <MenuItem key={cat.id} value={cat.id}>{cat.nome}</MenuItem>
+                      <MenuItem key={cat.id} value={cat.id}>
+                        {cat.nome}
+                      </MenuItem>
                     ))}
                   </Select>
                 </FormControl>
@@ -199,8 +366,8 @@ const handleTabChangeOpcao = (_, newValue) => {
 
                 <TextField label="Descrição" multiline minRows={3} value={produto.descricao}
                   onChange={(e) => setProduto({ ...produto, descricao: e.target.value })} fullWidth 
-                  inputProps={{ maxLength: 50 }} 
-                  helperText={`${produto.descricao.length}/50`} />
+                  inputProps={{ maxLength: 255 }} 
+                  helperText={`${produto.descricao.length}/255`} />
 
                 <TextField
                 label="Preço"
@@ -247,9 +414,17 @@ const handleTabChangeOpcao = (_, newValue) => {
                   <input hidden accept="image/*" type="file"
                          onChange={(e) => handleImageChange(e, setProduto)} />
                 </Button>
-                {produto.imagem && <p>Imagem selecionada: {produto.imagem.name}</p>}
-
-                <Button variant="contained" onClick={salvarProduto}>Salvar Produto</Button>
+                {produto.arquivo && (
+                  <div style={{ marginTop: "1rem" }}>
+                    <p>Imagem selecionada: {produto.arquivo.name}</p>
+                    <img
+                      src={produto.preview}
+                      alt="Pré-visualização"
+                      style={{ maxWidth: "200px", borderRadius: "8px", maxHeight:"100px" }}
+                    />
+                  </div>
+                )}
+                <Button variant="contained" onClick={() => { setAcaoSalvar("produto"); setConfirmOpen(true); }}>Salvar Produto</Button>
               </Box>
             </Paper>
           )}
@@ -267,12 +442,12 @@ const handleTabChangeOpcao = (_, newValue) => {
                   inputProps={{ maxLength: 50 }} 
                   helperText={`${produto.descricao.length}/50`} />
                 <TextField label="Descrição" multiline value={acrescimo.descricao} onChange={(e) => setAcrescimo({ ...acrescimo, descricao: e.target.value })} fullWidth 
-                  inputProps={{ maxLength: 50 }} 
-                  helperText={`${produto.descricao.length}/50`} />
+                  inputProps={{ maxLength: 255 }} 
+                  helperText={`${produto.descricao.length}/255`} />
                 <TextField
-                label="Preço"
-                value={acrescimo.preco}
-                onChange={(e) => {
+                  label="Preço"
+                  value={acrescimo.preco}
+                  onChange={(e) => {
                     // Mantém apenas números
                     let raw = e.target.value.replace(/\D/g, "");
 
@@ -305,38 +480,74 @@ const handleTabChangeOpcao = (_, newValue) => {
                   </Select>
                 </FormControl>
                 <Button variant="outlined" component="label">
-                  Selecionar Imagem
-                  <input hidden accept="image/*" type="file" onChange={(e) => handleImageChange(e, setAcrescimo)} />
+                  Selecionar Imagem (máx. 1MB)
+                  <input hidden accept="image/*" type="file"
+                         onChange={(e) => handleImageChange(e, setAcrescimo)} />
                 </Button>
-                {acrescimo.imagem && <p>Imagem selecionada: {acrescimo.imagem.name}</p>}
+                {acrescimo.arquivo && (
+                  <div style={{ marginTop: "1rem" }}>
+                    <p>Imagem selecionada: {acrescimo.arquivo.name}</p>
+                    <img
+                      src={acrescimo.preview}
+                      alt="Pré-visualização"
+                      style={{ maxWidth: "200px", borderRadius: "8px", maxHeight:"100px" }}
+                    />
+                  </div>
+                )}
 
                 <h3>Vincular a Produtos</h3>
-                <TableContainer sx={{ maxHeight: 200 }}>
-                  <Table size="small" stickyHeader>
-                    <TableHead>
-                      <TableRow>
-                        <TableCell>Selecionar</TableCell>
-                        <TableCell>ID</TableCell>
-                        <TableCell>Produto</TableCell>
-                      </TableRow>
-                    </TableHead>
-                    <TableBody>
-                      {produtosDisponiveis.map((prod) => (
-                        <TableRow key={prod.id}>
-                          <TableCell>
-                            <Checkbox
-                              checked={!!produtosSelecionados[prod.id]}
-                              onChange={() => handleCheckboxChange(prod.id)}
-                            />
-                          </TableCell>
-                          <TableCell>{prod.id}</TableCell>
-                          <TableCell>{prod.nome}</TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </TableContainer>
-                <Button variant="contained" sx={{ mt: 2 }} onClick={salvarAcrescimo}>Salvar Acréscimo</Button>
+
+{/* Filtro de Categoria */}
+<FormControl sx={{ mb: 2, minWidth: 200 }} size="small">
+  <InputLabel>Filtrar por Categoria</InputLabel>
+  <Select
+    value={categoriaFiltro}
+    label="Filtrar por Categoria"
+    onChange={(e) => setCategoriaFiltro(e.target.value)}
+  >
+    <MenuItem value="">Todas</MenuItem>
+    {[...new Set(produtosDisponiveis.map((p) => p.nomeCategoria))].map(
+      (cat, idx) => (
+        <MenuItem key={idx} value={cat}>
+          {cat}
+        </MenuItem>
+      )
+    )}
+  </Select>
+</FormControl>
+
+<TableContainer sx={{ maxHeight: 200 }}>
+  <Table size="small" stickyHeader>
+    <TableHead>
+      <TableRow>
+        <TableCell>Selecionar</TableCell>
+        <TableCell>ID</TableCell>
+        <TableCell>Produto</TableCell>
+        <TableCell>Categoria</TableCell>
+      </TableRow>
+    </TableHead>
+    <TableBody>
+      {produtosDisponiveis
+        .filter((prod) =>
+          categoriaFiltro ? prod.nomeCategoria === categoriaFiltro : true
+        )
+        .map((prod) => (
+          <TableRow key={prod.id}>
+            <TableCell>
+              <Checkbox
+                checked={!!produtosSelecionados[prod.id]}
+                onChange={() => handleCheckboxChange(prod.id)}
+              />
+            </TableCell>
+            <TableCell>{prod.id}</TableCell>
+            <TableCell>{prod.nome}</TableCell>
+            <TableCell>{prod.nomeCategoria}</TableCell>
+          </TableRow>
+        ))}
+    </TableBody>
+  </Table>
+</TableContainer>
+                <Button variant="contained" sx={{ mt: 2 }} onClick={() => { setAcaoSalvar("acrescimo"); setConfirmOpen(true); }}>Salvar Acréscimo</Button>
               </Box>
             </Paper>
           )}
@@ -378,16 +589,30 @@ const handleTabChangeOpcao = (_, newValue) => {
               {/* Subaba Opção */}
               {opcaoTabIndex === 1 && (
                 <Paper sx={{
-                    maxHeight: { xs: 'calc(100vh - 210px)', md: 'calc(100vh - 240px)' },
+                    p: 3,
+                    mt: 2,
+                    maxHeight: { xs: 'calc(100vh - 270px)', md: 'calc(100vh - 300px)' },
                     overflowY: 'auto',
                 }}>
-                  <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2,overflowY: 'auto',}}>
+                  <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2}}>
+                  <FormControl fullWidth>
+                    <InputLabel>Categoria</InputLabel>
+                    <Select
+                      value={produto.categoriaId}
+                      onChange={(e) => setProduto({ ...produto, categoriaId: e.target.value })}
+                      label="Categoria"
+                    >
+                      {categoriasDisponiveis.map((cat) => (
+                        <MenuItem key={cat.id} value={cat.id}>{cat.nome}</MenuItem>
+                      ))}
+                    </Select>
+                  </FormControl>
                     <TextField label="Nome" fullWidth
                      inputProps={{ maxLength: 50 }} 
                      helperText={`${produto.descricao.length}/50`} />
                     <TextField label="Descrição" fullWidth multiline minRows={2}
-                      inputProps={{ maxLength: 50 }} 
-                      helperText={`${produto.descricao.length}/50`} />
+                      inputProps={{ maxLength: 255 }} 
+                      helperText={`${produto.descricao.length}/255`} />
                     <TextField
                         label="Preço"
                         value={acrescimo.preco}
@@ -424,8 +649,19 @@ const handleTabChangeOpcao = (_, newValue) => {
                     </FormControl>
                     <Button variant="outlined" component="label">
                       Selecionar Imagem (máx. 1MB)
-                      <input hidden accept="image/*" type="file" />
+                      <input hidden accept="image/*" type="file"
+                            onChange={(e) => handleImageChange(e, setOpcao)} />
                     </Button>
+                    {opcao.arquivo && (
+                      <div style={{ marginTop: "1rem" }}>
+                        <p>Imagem selecionada: {opcao.arquivo.name}</p>
+                        <img
+                          src={opcao.preview}
+                          alt="Pré-visualização"
+                          style={{ maxWidth: "200px", borderRadius: "8px", maxHeight:"100px" }}
+                        />
+                      </div>
+                    )}
                     <Button variant="contained">Salvar Opção</Button>
                   </Box>
                 </Paper>
@@ -434,6 +670,27 @@ const handleTabChangeOpcao = (_, newValue) => {
           )}
         </Box>
       )}
+       
+      {/* Diálogo de confirmação */}
+      <Dialog
+        open={confirmOpen}
+        onClose={() => setConfirmOpen(false)}
+      >
+        <DialogTitle>Confirmar salvamento</DialogTitle>
+        <DialogContent>
+          <DialogContentText>
+            Deseja realmente realizar esta ação?
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setConfirmOpen(false)} color="secondary">
+            Cancelar
+          </Button>
+          <Button onClick={confirmarSalvar} variant="contained" color="primary">
+            Confirmar
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 }
