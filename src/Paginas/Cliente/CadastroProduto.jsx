@@ -4,6 +4,11 @@ import {
   TableContainer, Table, TableHead, TableRow, TableCell, TableBody, Checkbox, Alert,
   Dialog,DialogTitle,DialogContent,DialogContentText,DialogActions,FormControlLabel 
 } from '@mui/material';
+import GradingIcon from '@mui/icons-material/Grading';
+import ShoppingCartIcon from '@mui/icons-material/Fastfood';
+import CategoryIcon from '@mui/icons-material/MenuBook';
+import AddCircleOutlineIcon from '@mui/icons-material/AddCircleOutline';
+import ImportExportIcon from '@mui/icons-material/ImportExport';
 
 // Dica: caso sua aplicação tenha um layout com height: 100vh e overflow: hidden no body/#root,
 // remova esse overflow ou torne a área interna rolável (maxHeight + overflowY: 'auto').
@@ -16,10 +21,14 @@ export default function CadastroProduto() {
   const [acaoSalvar, setAcaoSalvar] = useState(null); // aqui guardo qual botão chamou
   const [categoriaFiltro, setCategoriaFiltro] = useState("");
   const [categoriaFiltroOpcao, setCategoriaFiltroOpcao] = useState("");
+  const [categoriaFiltroOpcaoItens, setCategoriaFiltroOpcaoItens] = useState("");
   const [produtoSelecionado, setProdutoSelecionado] = useState("");
+  const [produtoSelecionadoItens, setProdutoSelecionadoItens] = useState("");
+  const [itemSelecionado, setItemSelecionado] = useState("");
   // === ATUALIZAR CATEGORIAS E PRODUTOS ===
   const [atualizarCategoria, setAtualizarCategoria] = useState(0); // subabas de produto
   const [atualizarProduto, setAtualizarProduto] = useState(0); // subabas de categoria de opção
+  const [atualizarItens, setAtualizarItens] = useState(0);
 
   // === ESTADOS ===
   const [categoria, setCategoria] = useState({ nome: '', imagem: null ,arquivo: null,preview: null});
@@ -31,14 +40,15 @@ export default function CadastroProduto() {
     nome: '', descricao: '', preco: '', imagem: null, quantidadeMaximaIndividual: '', status: 1,arquivo: null,preview: null
   });
   const [categoriaOpcao, setCategoriaOpcao] = useState({
-    nome: '', observacao: "", quantidadeEscolhaPorProduto: '', status: 1
+    nome: '', idProduto: '', mostrarNome: true, observacao: "", quantidadeEscolhaPorProduto: '', status: 1
   });
     const [opcao, setOpcao] = useState({
-    nome: '', descricao: '', status: 1,preco:'',arquivo: null,preview: null
+    nome: '', descricao: '', idCategoriaDeOpcao:'', imagem: null, status: 1, preco:'', semPreco: false,arquivo: null,preview: null
   });
 
   const [categoriasDisponiveis, setCategoriasDisponiveis] = useState([]);
   const [produtosDisponiveis, setProdutosDisponiveis] = useState([]);
+  const [itensDisponiveis,setItensDisponiveis] = useState([]);
   const [produtosSelecionados, setProdutosSelecionados] = useState([]);
 
   const [msg, setMsg] = useState(null);
@@ -50,6 +60,11 @@ export default function CadastroProduto() {
   const produtosFiltrados = produtosDisponiveis.filter(
     (p) => p.nomeCategoria === categoriaFiltroOpcao
   );
+
+  const produtosFiltradosItens = produtosDisponiveis.filter(
+    (p) => p.nomeCategoria === categoriaFiltroOpcaoItens
+  );
+
   useEffect(() => {
     if (msg) {
       const timer = setTimeout(() => {
@@ -87,12 +102,35 @@ useEffect(() => {
       const data = await response.json();
       setProdutosDisponiveis(data);
     } catch (error) {
-      console.error("Erro ao buscar categorias:", error);
+      console.error("Erro ao buscar produtos:", error);
     }
   };
 
   fetchProdutos();
 }, [atualizarProduto]);
+
+useEffect(() => {
+  if (!produtoSelecionadoItens) return; // só roda se tiver produto selecionado
+
+  const fetchProdutos = async () => {
+    try {
+      const response = await fetch(
+        "https://localhost:7039/api/GrupoDeOpcao/" + produtoSelecionadoItens,
+        {
+          method: "GET",
+          credentials: "include" // mantém cookies/sessão
+        }
+      );
+      const data = await response.json();
+      console.log(data);
+      setItensDisponiveis(data);
+    } catch (error) {
+      console.error("Erro ao buscar opções:", error);
+    }
+  };
+
+  fetchProdutos();
+}, [produtoSelecionadoItens]); // dispara quando o produto muda
 
 
 const handleTabChange = (_, newValue) => {
@@ -115,8 +153,8 @@ const handleImageChange = (event, setter, field = 'imagem') => {
   const previewUrl = URL.createObjectURL(file);
   setter(prev => ({ ...prev, arquivo: file, preview: previewUrl})); 
 
-  if (file.size > 1024 * 1024) {
-    alert('A imagem deve ter no máximo 1MB');
+  if (file.size <= 100 * 1024 || file.size >= 600 * 1024)  {
+    alert('A imagem deve ter no mínimo 100 KB e no máximo 600KB');
     return;
   }
 
@@ -275,75 +313,126 @@ const confirmarSalvar = () => {
   };
 
    const salvarCategoriaOpcao = async () => {
+    if (!req(categoriaFiltroOpcao)) return setMsg({ type: 'error', text: 'Selecione a Categoria.' });
     if (!req(produtoSelecionado)) return setMsg({ type: 'error', text: 'Selecione o produto.' });
-    if (!req(categoriaOpcao.nome)) return setMsg({ type: 'error', text: 'Informe o nome do grupo de opção.' });
+    if (!req(categoriaOpcao.nome)) return setMsg({ type: 'error', text: 'Informe o nome do grupo de opçoão.' });
+    if (!req(categoriaOpcao.quantidadeEscolhaPorProduto)) return setMsg({ type: 'error', text: 'Informe a quantidade de escolha de itens desta opção.' });
+    if (categoriaOpcao.quantidadeEscolhaPorProduto == 0) return setMsg({ type: 'error', text: 'Informe a quantidade de escolha de itens não pode ser 0 (zero).' });
     try {
-    const response = await fetch("https://localhost:7039/api/CategoriaDeOpcao", {
+    const response = await fetch("https://localhost:7039/api/GrupoDeOpcao", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
         nome: categoriaOpcao.nome,
-        idCategoria: categoriaOpcao.idCategoria,
-        nomeCategoria: categoriaOpcao.nomeCategoria,
-        descricao: categoriaOpcao.descricao,
-        quantidadeMaximaAcrescimoPorProduto: Number(produto.quantidadeMaximaAcrescimoPorProduto) || null,
+        idproduto: produtoSelecionado,
+        mostrarNome: categoriaOpcao.mostrarNome ? 1 : 0,
+        observacao: categoriaOpcao.observacao,
+        quantidadeEscolhaPorProduto: Number(categoriaOpcao.quantidadeEscolhaPorProduto) || null,
         status: categoriaOpcao.status,
-        imagem: categoriaOpcao.imagem
       }),
       credentials: "include" // ✅ envia cookies HTTP-only
     });
 
     if (response.ok) {
       const data = await response.json();
-       setProduto({
-          nome: '', descricao: '', preco: '', imagem: null, idCategoria: '',
-          quantidadeMaximaAcrescimoPorProduto: '', status: 1,arquivo: null,preview: null,nomeCategoria:''
+       setCategoriaOpcao({
+          nome: '', observacao: '', idProduto: '',
+          quantidadeEscolhaPorProduto: '', status: 1,mostrarNome: true
       });
-      setMsg({ type: "success", text: "Produto salva com sucesso!" });
-      setAtualizarProduto(atualizarProduto + 1);
+      setAtualizarItens(atualizarItens + 1)
+      setMsg({ type: "success", text: "Grupo de Opção salvo com sucesso!" });
     } else {
       const error = await response.json();
-      setMsg({ type: "error", text: "Erro ao salvar Produto: " + error.message });
+      setMsg({ type: "error", text: "Erro ao salvar Grupo de Opção: " + error.message });
     }
   } catch (err) {
     setMsg({ type: "error", text: "Erro de conexão com servidor." });
   }
   };
 
-  const salvarOpcao = () => {
-    if (!req(categoriaOpcao.nome)) return setMsg({ type: 'error', text: 'Informe o nome da categoria de opção.' });
-    setMsg({ type: 'success', text: 'Categoria de opção salva (mock).' });
+  const salvarOpcao = async () => {
+    if (!req(itemSelecionado)) return setMsg({ type: 'error', text: 'Selecione o Grupo de Opção.' });
+    if (!req(opcao.nome)) return setMsg({ type: 'error', text: 'Informe o nome do item da opção.' });
+    if (!opcao.semPreco && (!isNumber(opcao.preco) || opcao.preco =="")) return setMsg({ type: 'error', text: 'Favor informar um preço válido para este item de opção ou marcar "sem preço".' });
+    try {
+    const response = await fetch("https://localhost:7039/api/Opcao", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        nome: opcao.nome,
+        idCategoriaDeOpcao: itemSelecionado,
+        nomeCategoria: categoriaFiltroOpcaoItens,
+        descricao: opcao.descricao,
+        imagem: opcao.imagem,
+        status: opcao.status,
+        preco: opcao.semPreco ? null : opcao.preco,
+        semPreco: opcao.semPreco ? 1 : 0
+      }),
+      credentials: "include" // ✅ envia cookies HTTP-only
+    });
+
+    if (response.ok) {
+      const data = await response.json();
+      setOpcao({
+         nome: '', descricao: '', idCategoriaDeOpcao:'', imagem: null, status: 1, preco:'', semPreco: false,arquivo: null,preview: null
+      });
+      setMsg({ type: "success", text: "Item de Opção salvo com sucesso!" });
+    } else {
+      const error = await response.json();
+      setMsg({ type: "error", text: "Erro ao salvar Item de Opção: " + error.message });
+    }
+  } catch (err) {
+    setMsg({ type: "error", text: "Erro de conexão com servidor." });
+  }
   };
 
-  // === ÁREA ROLÁVEL REUTILIZÁVEL ===
-  const ScrollArea = ({ children }) => (
-    <Paper
-      sx={{
-        p: 3,
-        mt: 2,
-        maxHeight: { xs: 'calc(100vh - 210px)', md: 'calc(100vh - 240px)' },
-        overflowY: 'auto',
-      }}
-    >
-      {children}
-    </Paper>
-  );
-
   return (
-    <Box sx={{ maxWidth: 900, mx: 'auto', mt: 2, px: 1 }}>
-      <h1 style={{ fontSize: '1.5rem', fontWeight: 'bold', marginBottom: '0.5rem' }}>Cadastro de Produtos</h1>
-
-      {msg && (
-        <Alert severity={msg.type} onClose={() => setMsg(null)} sx={{ mb: 1 }}>
-          {msg.text}
-        </Alert>
-      )}
-
-      <Tabs value={tabIndex} onChange={handleTabChange} variant="scrollable" scrollButtons="auto">
-        <Tab label="Categoria" />
-        <Tab label="Produto" />
+    <><Box 
+          sx={{ 
+            position: 'sticky', 
+            top: 0, 
+            zIndex: 1000, 
+            backgroundColor: 'white', // importante para não "sumir" ao rolar
+            display: 'flex', 
+            alignItems: 'center', 
+            justifyContent: 'initial', 
+            gap: 2, 
+            py: 1,
+            boxShadow: 1,
+            paddingLeft: 2
+          }}
+        >
+        <img 
+          src="/imagens/baratíssimo.png" 
+          alt="Logo" 
+          style={{ width: 40, height: 40, objectFit: 'contain' }} 
+        />
+        <h1 style={{ fontSize: '1.5rem', fontWeight: 'bold', margin: 0 }}>Cadastro de Produtos</h1>
+      </Box>
+    <Box sx={{ maxWidth: 1200, mx: 'auto', mt: 2, px: 1 }}>
+      <Box 
+        sx={{ 
+          display: 'flex', 
+          alignItems: 'center', 
+          justifyContent: 'center', // centraliza horizontalmente
+          gap: 2, 
+          mb: 1 
+        }}
+      >
+        <h1 style={{ fontSize: '1.5rem', fontWeight: 'bold', margin: 0 }}>Cardápio</h1>
+        <img 
+          src="/imagens/cardapio.png" 
+          alt="Logo" 
+          style={{ width: 40, height: 40, objectFit: 'contain' }} 
+      />
+    </Box>
+      <Tabs value={tabIndex} onChange={handleTabChange}  variant="scrollable" scrollButtons="auto">
+        <Tab iconPosition="start" icon={<CategoryIcon />} label="Categoria" />
+        <Tab iconPosition="start" icon={<ShoppingCartIcon />} label="Produto" />
       </Tabs>
 
       {/* ABA CATEGORIA */}
@@ -352,7 +441,7 @@ const confirmarSalvar = () => {
             p: 3,
             mt: 2,
             maxHeight: { xs: 'calc(100vh - 210px)', md: 'calc(100vh - 240px)' },
-            overflowY: 'auto',
+            
          }}>
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
             <TextField
@@ -364,7 +453,7 @@ const confirmarSalvar = () => {
             helperText={`${categoria.nome.length}/50`} // 👈 contador de caracteres
             />
             <Button variant="outlined" component="label">
-              Selecionar Imagem (máx. 1MB)
+              Selecionar Imagem (min. 100KB e máx. 600KB)
               <input hidden accept="image/*" type="file"
                      onChange={(e) => handleImageChange(e, setCategoria)} />
             </Button>
@@ -387,9 +476,9 @@ const confirmarSalvar = () => {
       {tabIndex === 1 && (
         <Box sx={{ mt: 1, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
           <Tabs value={produtoTabIndex} onChange={handleProdutoTabChange} variant="scrollable" scrollButtons="auto">
-            <Tab label="Dados" />
-            <Tab label="Acréscimos" />
-            <Tab label="Opções" />
+            <Tab iconPosition="start" icon={<GradingIcon />} label="Dados" />
+            <Tab iconPosition="start" icon={<AddCircleOutlineIcon/>} label="Acréscimos" />
+            <Tab iconPosition="start" icon={<ImportExportIcon/>} label="Opções" />
           </Tabs>
 
           {/* Subaba Dados */}
@@ -397,12 +486,10 @@ const confirmarSalvar = () => {
             <Paper sx={{
                 p: 3,
                 mt: 2,
-                maxHeight: { xs: 'calc(100vh - 210px)', md: 'calc(100vh - 240px)' },
-                overflowY: 'auto',
             }}>
               <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
                 <FormControl fullWidth>
-                  <InputLabel>Categoria</InputLabel>
+                  <InputLabel>Selecione a Categoria</InputLabel>
                   <Select
                     value={produto.idCategoria || ""}
                     onChange={(e) => {
@@ -415,7 +502,7 @@ const confirmarSalvar = () => {
                         nomeCategoria: categoriaSelecionada ? categoriaSelecionada.nome : "",
                       });
                     }}
-                    label="Categoria"
+                    label="Selecione a Categoria"
                   >
                     {categoriasDisponiveis.map((cat) => (
                       <MenuItem key={cat.id} value={cat.id}>
@@ -435,8 +522,19 @@ const confirmarSalvar = () => {
                   inputProps={{ maxLength: 255 }} 
                   helperText={`${produto.descricao.length}/255`} />
 
-                <Paper elevation={3} sx={{ p: 2, mb: 2 }}>
-                  <Box display="flex" alignItems="center" gap={4}>
+                <Paper elevation={1} sx={{ p: 2, mb: 2 }}>
+                  <Box display="flex" flexDirection='column' gap={1}>
+                    <FormControlLabel
+                      control={
+                        <Checkbox
+                          checked={produto.aPartirDe}
+                          onChange={(e) =>
+                            setProduto({ ...produto, aPartirDe: e.target.checked })
+                          }
+                        />
+                      }
+                      label="A partir de (preços nas opções)"
+                    />
                     <TextField
                       label="Preço"
                       value={produto.preco}
@@ -457,20 +555,8 @@ const confirmarSalvar = () => {
 
                         setProduto({ ...produto, preco: valorFormatado });
                       }}
-                       sx={{ width: "70%" }}
+                      fullWidth
                       inputProps={{ maxLength: 15 }}
-                    />
-
-                    <FormControlLabel
-                      control={
-                        <Checkbox
-                          checked={produto.aPartirDe}
-                          onChange={(e) =>
-                            setProduto({ ...produto, aPartirDe: e.target.checked })
-                          }
-                        />
-                      }
-                      label="A partir de"
                     />
                   </Box>
                 </Paper>
@@ -488,7 +574,7 @@ const confirmarSalvar = () => {
                 </FormControl>
 
                 <Button variant="outlined" component="label">
-                  Selecionar Imagem (máx. 1MB)
+                  Selecionar Imagem (min. 100KB e máx. 600KB)
                   <input hidden accept="image/*" type="file"
                          onChange={(e) => handleImageChange(e, setProduto)} />
                 </Button>
@@ -509,11 +595,9 @@ const confirmarSalvar = () => {
 
           {/* Subaba Acréscimos */}
           {produtoTabIndex === 1 && (
-            <Paper sx={{
+           <Paper sx={{
                 p: 3,
                 mt: 2,
-                maxHeight: { xs: 'calc(100vh - 210px)', md: 'calc(100vh - 240px)' },
-                overflowY: 'auto',
             }}>
               <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
                 <TextField label="Nome do Acréscimo" value={acrescimo.nome} onChange={(e) => setAcrescimo({ ...acrescimo, nome: e.target.value })} fullWidth
@@ -558,7 +642,7 @@ const confirmarSalvar = () => {
                   </Select>
                 </FormControl>
                 <Button variant="outlined" component="label">
-                  Selecionar Imagem (máx. 1MB)
+                  Selecionar Imagem (min. 100KB e máx. 600KB)
                   <input hidden accept="image/*" type="file"
                          onChange={(e) => handleImageChange(e, setAcrescimo)} />
                 </Button>
@@ -573,7 +657,7 @@ const confirmarSalvar = () => {
                   </div>
                 )}
 
-                <h3>Vincular a Produtos</h3>
+                <h3>Selecione um ou mais produtos para este acréscimo</h3>
 
                 {/* Filtro de Categoria */}
                 <FormControl sx={{ mb: 2, minWidth: 200 }} size="small">
@@ -627,7 +711,7 @@ const confirmarSalvar = () => {
                 </TableContainer>
                 <Button variant="contained" sx={{ mt: 2 }} onClick={() => { setAcaoSalvar("acrescimo"); setConfirmOpen(true); }}>Salvar Acréscimo</Button>
               </Box>
-            </Paper>
+           </Paper>
           )}
 
           {/* Subaba Categorias de Opção */}
@@ -635,24 +719,22 @@ const confirmarSalvar = () => {
             <Box sx={{ mt: 1, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
               <Tabs value={opcaoTabIndex} onChange={handleTabChangeOpcao} variant="scrollable" scrollButtons="auto">
                 <Tab label="Grupo de Opção" />
-                <Tab label="Itens" />
+                <Tab label="Itens Do Grupo de Opção" />
               </Tabs>
 
               {/* Subaba Categoria de Opção */}
               {opcaoTabIndex === 0 && (
-                <Paper sx={{
-                    p: 3,
-                    mt: 2,
-                    maxHeight: { xs: 'calc(100vh - 210px)', md: 'calc(100vh - 240px)' },
-                    overflowY: 'auto',
+              <Paper sx={{
+                p: 3,
+                mt: 2,
                 }}>
                   <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
                     {/* Combo de Categorias */}
                     <FormControl sx={{ mb: 2, minWidth: 200 }} size="small">
-                      <InputLabel>Escolher Categoria</InputLabel>
+                      <InputLabel>Selecionar a Categoria</InputLabel>
                       <Select
                         value={categoriaFiltroOpcao}
-                        label="Filtrar por Categoria"
+                        label="Selecionar a Categoria"
                         onChange={(e) => {
                           setCategoriaFiltroOpcao(e.target.value);
                           setProdutoSelecionado(""); // limpa produto quando muda categoria
@@ -669,10 +751,10 @@ const confirmarSalvar = () => {
                     {/* Combo de Produtos (aparece só se tiver categoria escolhida) */}
                     {categoriaFiltroOpcao && (
                       <FormControl sx={{ mb: 2, minWidth: 200 }} size="small">
-                        <InputLabel>Escolher Produto</InputLabel>
+                        <InputLabel>Selecionar o Produto</InputLabel>
                         <Select
                           value={produtoSelecionado}
-                          label="Produto"
+                          label="Selecionar o Produto"
                           onChange={(e) => setProdutoSelecionado(e.target.value)}
                         >
                           {produtosFiltrados.map((prod) => (
@@ -683,9 +765,9 @@ const confirmarSalvar = () => {
                         </Select>
                       </FormControl>
                     )}
-                    <Paper elevation={3} sx={{ p: 2, mb: 2 }}>
-                      <Box display="flex" alignItems="center" gap={4}>
-                      <TextField label="Nome" value={categoriaOpcao.nome} onChange={(e) => setCategoriaOpcao({ ...categoriaOpcao, nome: e.target.value })} sx={{ width: "70%" }}
+                    <Paper elevation={1} sx={{ p: 2, mb: 2 }}>
+                      <Box display="flex" flexDirection= 'column' gap={2}>
+                      <TextField label="Nome" value={categoriaOpcao.nome} onChange={(e) => setCategoriaOpcao({ ...categoriaOpcao, nome: e.target.value })} fullWidth
                       inputProps={{ maxLength: 50 }} 
                       helperText={`${categoriaOpcao.nome.length}/50`} />
                             <FormControlLabel
@@ -693,7 +775,7 @@ const confirmarSalvar = () => {
                               <Checkbox
                                 checked={categoriaOpcao.mostrarNome}
                                 onChange={(e) =>
-                                  setProduto({ ...categoriaOpcao, mostrarNome: e.target.checked })
+                                  setCategoriaOpcao({ ...categoriaOpcao, mostrarNome: e.target.checked })
                                 }
                               />
                             }
@@ -704,7 +786,7 @@ const confirmarSalvar = () => {
                     <TextField label="Observação" value={categoriaOpcao.observacao} onChange={(e) => setCategoriaOpcao({ ...categoriaOpcao, observacao: e.target.value })} fullWidth
                      inputProps={{ maxLength: 50 }} 
                      helperText={`${categoriaOpcao.observacao.length}/50`} />
-                    <TextField label="Quantidade de Escolhas por Produto" type="number" value={categoriaOpcao.quantidadeEscolhaPorProduto} onChange={(e) => setCategoriaOpcao({ ...categoriaOpcao, quantidadeEscolhaPorProduto: e.target.value })} fullWidth />
+                    <TextField label="Quantidade de itens poderá escolher" type="number" value={categoriaOpcao.quantidadeEscolhaPorProduto} onChange={(e) => setCategoriaOpcao({ ...categoriaOpcao, quantidadeEscolhaPorProduto: e.target.value })} fullWidth />
                     <FormControl fullWidth>
                       <InputLabel>Status</InputLabel>
                       <Select value={categoriaOpcao.status} onChange={(e) => setCategoriaOpcao({ ...categoriaOpcao, status: e.target.value })} label="Status">
@@ -713,7 +795,7 @@ const confirmarSalvar = () => {
                       </Select>
                     </FormControl>
                     {categoriaOpcao.imagem && <p>Imagem selecionada: {categoriaOpcao.imagem.name}</p>}
-                    <Button variant="contained" onClick={salvarCategoriaOpcao}>Salvar Grupo de Opção</Button>
+                    <Button variant="contained" onClick={() => { setAcaoSalvar("categoriaDeOpcao"); setConfirmOpen(true); }}>Salvar Grupo de Opção</Button>
                   </Box>
                 </Paper>
               )}
@@ -722,65 +804,119 @@ const confirmarSalvar = () => {
               {opcaoTabIndex === 1 && (
                 <Paper sx={{
                     p: 3,
-                    mt: 2,
-                    maxHeight: { xs: 'calc(100vh - 270px)', md: 'calc(100vh - 300px)' },
-                    overflowY: 'auto',
+                    mt: 2,                  
                 }}>
                   <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2}}>
-                  <FormControl fullWidth>
-                    <InputLabel>Categoria</InputLabel>
-                    <Select
-                      value={produto.idCategoria}
-                      onChange={(e) => setProduto({ ...produto, idCategoria: e.target.value })}
-                      label="Categoria"
-                    >
-                      {categoriasDisponiveis.map((cat) => (
-                        <MenuItem key={cat.id} value={cat.id}>{cat.nome}</MenuItem>
-                      ))}
-                    </Select>
-                  </FormControl>
-                    <TextField label="Nome" fullWidth
-                     inputProps={{ maxLength: 50 }} 
-                     helperText={`${produto.descricao.length}/50`} />
-                    <TextField label="Descrição" fullWidth multiline minRows={2}
-                      inputProps={{ maxLength: 255 }} 
-                      helperText={`${produto.descricao.length}/255`} />
-                    <TextField
-                        label="Preço"
-                        value={acrescimo.preco}
+                  {/* Combo de Categorias */}
+                    <FormControl sx={{ mb: 2, minWidth: 200 }} size="small">
+                      <InputLabel>Selecionar a Categoria</InputLabel>
+                      <Select
+                        value={categoriaFiltroOpcaoItens}
+                        label="Filtrar por Categoria"
                         onChange={(e) => {
-                            // Mantém apenas números
+                          setCategoriaFiltroOpcaoItens(e.target.value);
+                          setProdutoSelecionadoItens(""); // limpa produto quando muda categoria
+                        }}
+                      >
+                        {categorias.map((cat, idx) => (
+                          <MenuItem key={idx} value={cat}>
+                            {cat}
+                          </MenuItem>
+                        ))}
+                      </Select>
+                    </FormControl>
+
+                    {/* Combo de Produtos (aparece só se tiver categoria escolhida) */}
+                    {categoriaFiltroOpcaoItens && (
+                      <FormControl sx={{ mb: 2, minWidth: 200 }} size="small">
+                        <InputLabel>Selecionar o Produto</InputLabel>
+                        <Select
+                          value={produtoSelecionadoItens}
+                          label="Selecionar o Produto"
+                          onChange={(e) => {setProdutoSelecionadoItens(e.target.value)
+                             setItemSelecionado(""); 
+                          }}
+                        >
+                          {produtosFiltradosItens.map((prod) => (
+                            <MenuItem key={prod.id} value={prod.id}>
+                              {prod.nome}
+                            </MenuItem>
+                          ))}
+                        </Select>
+                      </FormControl>
+                    )}
+                    {/* Combo de grupo de opção (aparece só se tiver produto escolhido) */}
+                    {produtoSelecionadoItens && (
+                      <FormControl sx={{ mb: 2, minWidth: 200 }} size="small">
+                        <InputLabel>Selecionar o Grupo de Opções</InputLabel>
+                        <Select
+                          value={itemSelecionado}
+                          label="Selecionar o Grupo de Opções"
+                          onChange={(e) => setItemSelecionado(e.target.value)}
+                        >
+                          {itensDisponiveis.map((item) => (
+                            <MenuItem key={item.id} value={item.id}>
+                              {item.nome}
+                            </MenuItem>
+                          ))}
+                        </Select>
+                      </FormControl>
+                    )}
+                    <TextField label="Nome" fullWidth value={opcao.nome} onChange={(e) => setOpcao({ ...opcao, nome: e.target.value })}
+                     inputProps={{ maxLength: 50 }} 
+                     helperText={`${opcao.nome.length}/50`} />
+                    <TextField label="Descrição" fullWidth multiline minRows={2}
+                      value={opcao.descricao} onChange={(e) => setOpcao({ ...opcao, descricao: e.target.value })}
+                      inputProps={{ maxLength: 255 }} 
+                      helperText={`${opcao.descricao.length}/255`} />
+                    <Paper elevation={1} sx={{ p: 2, mb: 2 }}>
+                      <Box display="flex" flexDirection='column' gap={1}>
+                        <FormControlLabel
+                          control={
+                            <Checkbox
+                              checked={opcao.semPreco}
+                              onChange={(e) =>
+                                setOpcao({ ...opcao, semPreco: e.target.checked })
+                              }
+                            />
+                          }
+                          label="Sem preço (preço no Produto)"
+                        />
+                        <TextField
+                          label="Preço"
+                          disabled={opcao.semPreco} 
+                          value={opcao.preco}
+                          onChange={(e) => {
                             let raw = e.target.value.replace(/\D/g, "");
 
-                            // Se não digitar nada, zera
                             if (!raw) {
-                            setAcrescimo({ ...acrescimo, preco: "" });
-                            return;
+                              setProduto({ ...opcao, preco: "" });
+                              return;
                             }
 
-                            // Garante ao menos 3 dígitos para conseguir separar reais e centavos
                             if (raw.length === 1) raw = "0" + raw;
                             if (raw.length === 2) raw = "0" + raw;
 
-                            // Formata: últimos 2 dígitos = centavos
                             const reais = raw.slice(0, -2);
                             const centavos = raw.slice(-2);
                             const valorFormatado = `${parseInt(reais, 10)},${centavos}`;
 
-                            setAcrescimo({ ...acrescimo, preco: valorFormatado });
-                        }}
-                        fullWidth
-                        inputProps={{ maxLength: 15 }} // evita números absurdamente grandes
-                    />
+                            setProduto({ ...produto, preco: valorFormatado });
+                          }}
+                          fullWidth
+                          inputProps={{ maxLength: 15 }}
+                        />
+                      </Box>
+                    </Paper>
                     <FormControl fullWidth>
                       <InputLabel>Status</InputLabel>
-                      <Select defaultValue={1}>
+                      <Select defaultValue={1} value={opcao.status} onChange={(e) => setCategoriaOpcao({ ...opcao, status: e.target.value })}  label="Status">
                         <MenuItem value={1}>Ativo</MenuItem>
                         <MenuItem value={0}>Inativo</MenuItem>
                       </Select>
                     </FormControl>
                     <Button variant="outlined" component="label">
-                      Selecionar Imagem (máx. 1MB)
+                      Selecionar Imagem (min. 100KB e máx. 600KB)
                       <input hidden accept="image/*" type="file"
                             onChange={(e) => handleImageChange(e, setOpcao)} />
                     </Button>
@@ -794,12 +930,34 @@ const confirmarSalvar = () => {
                         />
                       </div>
                     )}
-                    <Button variant="contained">Salvar Opção</Button>
+                    <Button variant="contained" onClick={() => { setAcaoSalvar("opcao"); setConfirmOpen(true); }}>Salvar Opção</Button>
                   </Box>
                 </Paper>
               )}
             </Box>
           )}
+        </Box>
+      )}
+      
+      {msg && (
+        <Box
+          sx={{
+            position: "fixed",
+            top: "50%",
+            left: "50%",
+            transform: "translate(-50%, -50%)",
+            zIndex: 9999,
+            width: { xs: "90%", sm: "400px", md: "500px" }, // responsivo por breakpoint
+            maxWidth: "800px", // não ultrapassa 90% da tela
+          }}
+        >
+          <Alert
+            severity={msg.type}
+            onClose={() => setMsg(null)}
+            variant="filled"
+          >
+            {msg.text}
+          </Alert>
         </Box>
       )}
        
@@ -824,5 +982,6 @@ const confirmarSalvar = () => {
         </DialogActions>
       </Dialog>
     </Box>
+</>
   );
 }

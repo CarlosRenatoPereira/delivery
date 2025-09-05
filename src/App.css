@@ -5,7 +5,7 @@
 body{
 display: block;
   margin: 0;
-  overflow: hidden;
+  overflow-y: auto; /* garante a rolagem */
 }
 
 .card {
