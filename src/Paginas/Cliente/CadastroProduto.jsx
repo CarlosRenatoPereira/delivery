@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useState } from 'react';
 import {
   Tabs, Tab, Box, TextField, Button, Paper, MenuItem, Select, InputLabel, FormControl, Input,
-  TableContainer, Table, TableHead, TableRow, TableCell, TableBody, Checkbox, Alert,
-  Dialog,DialogTitle,DialogContent,DialogContentText,DialogActions,FormControlLabel 
+  TableContainer, Table, TableHead, TableRow, TableCell, TableBody, Checkbox, Alert,FormLabel,
+  Dialog,DialogTitle,DialogContent,DialogContentText,DialogActions,FormControlLabel,RadioGroup,Radio
 } from '@mui/material';
 import GradingIcon from '@mui/icons-material/Grading';
 import ShoppingCartIcon from '@mui/icons-material/Fastfood';
@@ -31,7 +31,7 @@ export default function CadastroProduto() {
   const [atualizarItens, setAtualizarItens] = useState(0);
 
   // === ESTADOS ===
-  const [categoria, setCategoria] = useState({ nome: '', imagem: null ,arquivo: null,preview: null});
+  const [categoria, setCategoria] = useState({ nome: '', status: 1, imagem: null ,arquivo: null,preview: null});
   const [produto, setProduto] = useState({
     nome: '', descricao: '', preco: '', aPartirDe: 0,imagem: null, idCategoria: '',
     quantidadeMaximaAcrescimoPorProduto: null, status: 1,arquivo: null,preview: null, nomeCategoria: ''
@@ -197,7 +197,7 @@ const salvarCategoria = async () => {
       },
       body: JSON.stringify({
         nome: categoria.nome,
-        imagem: categoria.imagem
+        status: categoria.status
       }),
       credentials: "include" // ✅ envia cookies HTTP-only
     });
@@ -452,21 +452,13 @@ const confirmarSalvar = () => {
             inputProps={{ maxLength: 50 }} 
             helperText={`${categoria.nome.length}/50`} // 👈 contador de caracteres
             />
-            <Button variant="outlined" component="label">
-              Selecionar Imagem (min. 100KB e máx. 600KB)
-              <input hidden accept="image/*" type="file"
-                     onChange={(e) => handleImageChange(e, setCategoria)} />
-            </Button>
-           {categoria.arquivo && (
-              <div style={{ marginTop: "1rem" }}>
-                <p>Imagem selecionada: {categoria.arquivo.name}</p>
-                <img
-                  src={categoria.preview}
-                  alt="Pré-visualização"
-                  style={{ maxWidth: "200px", borderRadius: "8px", maxHeight:"100px" }}
-                />
-              </div>
-            )}
+            <FormControl fullWidth>
+              <InputLabel>Status</InputLabel>
+              <Select value={categoria.status} onChange={(e) => setCategoria({ ...categoria, status: e.target.value })} label="Status">
+                <MenuItem value={1}>Ativo</MenuItem>
+                <MenuItem value={0}>Inativo</MenuItem>
+              </Select>
+            </FormControl>
             <Button variant="contained" onClick={() => { setAcaoSalvar("categoria"); setConfirmOpen(true); }}>Salvar Categoria</Button>
           </Box>
         </Paper>
@@ -783,6 +775,23 @@ const confirmarSalvar = () => {
                           />
                         </Box>
                     </Paper>
+                    {/* Card Tipo de Cobrança */}
+<Paper elevation={2} sx={{ p: 2, mb: 2 }}>
+  <FormControl component="fieldset">
+    <FormLabel component="legend" sx={{ mb: 1, fontWeight: "bold" }}>
+      Tipo de Cobrança
+    </FormLabel>
+    <RadioGroup
+      value={opcao.tipoDeCobranca || ""}
+      onChange={(e) => setOpcao({ ...opcao, tipoDeCobranca: e.target.value })}
+    >
+      <FormControlLabel value="1" control={<Radio />} label="Por Produto" />
+      <FormControlLabel value="2" control={<Radio />} label="Por Unidade" />
+      <FormControlLabel value="3" control={<Radio />} label="Por Peso" />
+      <FormControlLabel value="4" control={<Radio />} label="Outro" />
+    </RadioGroup>
+  </FormControl>
+</Paper>
                     <TextField label="Observação" value={categoriaOpcao.observacao} onChange={(e) => setCategoriaOpcao({ ...categoriaOpcao, observacao: e.target.value })} fullWidth
                      inputProps={{ maxLength: 50 }} 
                      helperText={`${categoriaOpcao.observacao.length}/50`} />
