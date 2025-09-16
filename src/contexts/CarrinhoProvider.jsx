@@ -7,18 +7,23 @@ export const CarrinhoProvider = ({ children }) => {
   const [cart, setCart] = useState([]);
 
   useEffect(() => {
-    const savedCart = localStorage.getItem('carrinho');
+    const savedCart = sessionStorage.getItem('carrinho');
     if (savedCart) {
       setCart(JSON.parse(savedCart));
     }
   }, []);
 
   useEffect(() => {
-    localStorage.setItem('carrinho', JSON.stringify(cart));
+    sessionStorage.setItem('carrinho', JSON.stringify(cart));
   }, [cart]);
 
+  const clearCart = () => {
+    setCart([]); // limpa o estado
+    sessionStorage.removeItem('carrinho'); // limpa o storage
+  };
+
   return (
-    <CarrinhoContext.Provider value={{ cart, setCart }}>
+    <CarrinhoContext.Provider value={{ cart, setCart, clearCart }}>
       {children}
     </CarrinhoContext.Provider>
   );

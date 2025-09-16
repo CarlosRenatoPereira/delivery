@@ -29,6 +29,8 @@ export default function CadastroProduto() {
   const [atualizarCategoria, setAtualizarCategoria] = useState(0); // subabas de produto
   const [atualizarProduto, setAtualizarProduto] = useState(0); // subabas de categoria de opção
   const [atualizarItens, setAtualizarItens] = useState(0);
+  const [tipos, setTipos] = useState([]);
+  const [semPreco, setSemPreco] = useState(false);
 
   // === ESTADOS ===
   const [categoria, setCategoria] = useState({ nome: '', status: 1, imagem: null ,arquivo: null,preview: null});
@@ -40,10 +42,10 @@ export default function CadastroProduto() {
     nome: '', descricao: '', preco: '', imagem: null, quantidadeMaximaIndividual: '', status: 1,arquivo: null,preview: null
   });
   const [categoriaOpcao, setCategoriaOpcao] = useState({
-    nome: '', idProduto: '', mostrarNome: true, observacao: "", quantidadeEscolhaPorProduto: '', status: 1
+    nome: '', idProduto: '', idTipoDeCobranca: '', mostrarNome: true, observacao: "", quantidadeEscolhaPorProduto: '', obrigatorio: 1, status: 1
   });
     const [opcao, setOpcao] = useState({
-    nome: '', descricao: '', idCategoriaDeOpcao:'', imagem: null, status: 1, preco:'', semPreco: false,arquivo: null,preview: null
+    nome: '', descricao: '', idCategoriaDeOpcao:'', quantidadeMaximaIndividual:'', imagem: null, status: 1, preco:'',arquivo: null,preview: null
   });
 
   const [categoriasDisponiveis, setCategoriasDisponiveis] = useState([]);
@@ -64,6 +66,23 @@ export default function CadastroProduto() {
   const produtosFiltradosItens = produtosDisponiveis.filter(
     (p) => p.nomeCategoria === categoriaFiltroOpcaoItens
   );
+useEffect(() => {
+    const fetchTipos = async () => {
+      try {
+        const response = await fetch("https://localhost:7039/api/TipoDeCobranca", {
+        method: "GET",
+        credentials: "include" // <- ESSENCIAL para enviar cookies
+      }); // ajuste a URL
+        const data = await response.json();
+        console.log(data)
+        setTipos(data);
+      } catch (error) {
+        console.error("Erro ao carregar tipos de cobrança", error);
+      }
+    };
+
+    fetchTipos();
+  }, []);
 
   useEffect(() => {
     if (msg) {
@@ -316,6 +335,7 @@ const confirmarSalvar = () => {
     if (!req(categoriaFiltroOpcao)) return setMsg({ type: 'error', text: 'Selecione a Categoria.' });
     if (!req(produtoSelecionado)) return setMsg({ type: 'error', text: 'Selecione o produto.' });
     if (!req(categoriaOpcao.nome)) return setMsg({ type: 'error', text: 'Informe o nome do grupo de opçoão.' });
+    if (!req(categoriaOpcao.idTipoDeCobranca)) return setMsg({ type: 'error', text: 'Informe o tipo de cobrança.' });
     if (!req(categoriaOpcao.quantidadeEscolhaPorProduto)) return setMsg({ type: 'error', text: 'Informe a quantidade de escolha de itens desta opção.' });
     if (categoriaOpcao.quantidadeEscolhaPorProduto == 0) return setMsg({ type: 'error', text: 'Informe a quantidade de escolha de itens não pode ser 0 (zero).' });
     try {
@@ -326,10 +346,12 @@ const confirmarSalvar = () => {
       },
       body: JSON.stringify({
         nome: categoriaOpcao.nome,
+        idTipoDeCobranca: categoriaOpcao.idTipoDeCobranca,
         idproduto: produtoSelecionado,
         mostrarNome: categoriaOpcao.mostrarNome ? 1 : 0,
         observacao: categoriaOpcao.observacao,
         quantidadeEscolhaPorProduto: Number(categoriaOpcao.quantidadeEscolhaPorProduto) || null,
+        obrigatorio: categoriaOpcao.obrigatorio,
         status: categoriaOpcao.status,
       }),
       credentials: "include" // ✅ envia cookies HTTP-only
@@ -339,7 +361,7 @@ const confirmarSalvar = () => {
       const data = await response.json();
        setCategoriaOpcao({
           nome: '', observacao: '', idProduto: '',
-          quantidadeEscolhaPorProduto: '', status: 1,mostrarNome: true
+          quantidadeEscolhaPorProduto: '', status: 1,mostrarNome: true, obrigatorio: 1, idTipoDeCobranca: ''
       });
       setAtualizarItens(atualizarItens + 1)
       setMsg({ type: "success", text: "Grupo de Opção salvo com sucesso!" });
@@ -355,7 +377,8 @@ const confirmarSalvar = () => {
   const salvarOpcao = async () => {
     if (!req(itemSelecionado)) return setMsg({ type: 'error', text: 'Selecione o Grupo de Opção.' });
     if (!req(opcao.nome)) return setMsg({ type: 'error', text: 'Informe o nome do item da opção.' });
-    if (!opcao.semPreco && (!isNumber(opcao.preco) || opcao.preco =="")) return setMsg({ type: 'error', text: 'Favor informar um preço válido para este item de opção ou marcar "sem preço".' });
+    if (!req(opcao.quantidadeMaximaIndividual)) return setMsg({ type: 'error', text: 'Informe a quantidade máxima de escolha deste item.' });
+    console.log(opcao);
     try {
     const response = await fetch("https://localhost:7039/api/Opcao", {
       method: "POST",
@@ -369,8 +392,8 @@ const confirmarSalvar = () => {
         descricao: opcao.descricao,
         imagem: opcao.imagem,
         status: opcao.status,
-        preco: opcao.semPreco ? null : opcao.preco,
-        semPreco: opcao.semPreco ? 1 : 0
+        quantidadeMaximaIndividual: opcao.quantidadeMaximaIndividual,
+        preco: opcao.preco === '' ? 0 : opcao.preco.replace(",",".")
       }),
       credentials: "include" // ✅ envia cookies HTTP-only
     });
@@ -378,7 +401,7 @@ const confirmarSalvar = () => {
     if (response.ok) {
       const data = await response.json();
       setOpcao({
-         nome: '', descricao: '', idCategoriaDeOpcao:'', imagem: null, status: 1, preco:'', semPreco: false,arquivo: null,preview: null
+         nome: '', descricao: '', idCategoriaDeOpcao:'', quantidadeMaximaIndividual: '', imagem: null, status: 1, preco:'',arquivo: null,preview: null
       });
       setMsg({ type: "success", text: "Item de Opção salvo com sucesso!" });
     } else {
@@ -555,7 +578,7 @@ const confirmarSalvar = () => {
 
                 <TextField label="Qtd Máx de Acréscimos por Produto" type="number"
                   value={produto.quantidadeMaximaAcrescimoPorProduto}
-                  onChange={(e) => setProduto({ ...produto, quantidadeMaximaAcrescimoPorProduto: e.target.value })} fullWidth />
+                  onChange={(e) => setProduto({ ...produto, quantidadeMaximaAcrescimoPorProduto: e.target.value })} inputProps={{ min: 0 }} fullWidth />
 
                 <FormControl fullWidth>
                   <InputLabel>Status</InputLabel>
@@ -625,7 +648,7 @@ const confirmarSalvar = () => {
                 fullWidth
                 inputProps={{ maxLength: 15 }} // evita números absurdamente grandes
                 />
-                <TextField label="Qtd Máx Individual" type="number" value={acrescimo.quantidadeMaximaIndividual} onChange={(e) => setAcrescimo({ ...acrescimo, quantidadeMaximaIndividual: e.target.value })} fullWidth />
+                <TextField label="Qtd máx deste acréscimo" type="number" value={acrescimo.quantidadeMaximaIndividual} onChange={(e) => setAcrescimo({ ...acrescimo, quantidadeMaximaIndividual: e.target.value })} inputProps={{ min: 0 }} fullWidth />
                 <FormControl fullWidth>
                   <InputLabel>Status</InputLabel>
                   <Select value={acrescimo.status} onChange={(e) => setAcrescimo({ ...acrescimo, status: e.target.value })} label="Status">
@@ -776,26 +799,46 @@ const confirmarSalvar = () => {
                         </Box>
                     </Paper>
                     {/* Card Tipo de Cobrança */}
-<Paper elevation={2} sx={{ p: 2, mb: 2 }}>
-  <FormControl component="fieldset">
-    <FormLabel component="legend" sx={{ mb: 1, fontWeight: "bold" }}>
-      Tipo de Cobrança
-    </FormLabel>
-    <RadioGroup
-      value={opcao.tipoDeCobranca || ""}
-      onChange={(e) => setOpcao({ ...opcao, tipoDeCobranca: e.target.value })}
-    >
-      <FormControlLabel value="1" control={<Radio />} label="Por Produto" />
-      <FormControlLabel value="2" control={<Radio />} label="Por Unidade" />
-      <FormControlLabel value="3" control={<Radio />} label="Por Peso" />
-      <FormControlLabel value="4" control={<Radio />} label="Outro" />
-    </RadioGroup>
-  </FormControl>
-</Paper>
+                    <Paper elevation={2} sx={{ p: 2, mb: 2 }}>
+                      <FormControl component="fieldset">
+                        <FormLabel component="legend" sx={{ mb: 1, fontWeight: "bold" }}>
+                          Tipo de Cobrança
+                        </FormLabel>
+                        <RadioGroup
+                          value={categoriaOpcao.idTipoDeCobranca || ""}
+                          onChange={(e) =>
+                            setCategoriaOpcao({ ...categoriaOpcao, idTipoDeCobranca: e.target.value })
+                          }
+                        >
+                          {tipos.map((tipo) => (
+                            <FormControlLabel
+                              key={tipo.id}
+                              value={tipo.id.toString()}
+                              control={<Radio />}
+                              label={tipo.descricao}
+                              sx={{
+                                mb: 1.6, // espaço abaixo de cada opção
+                                "& .MuiFormControlLabel-label": {
+                                  fontSize: "0.77rem",  // tamanho da fonte
+                                  fontFamily: "Arial, sans-serif", // fonte personalizada
+                                },
+                              }}
+                            />
+                          ))}
+                        </RadioGroup>
+                      </FormControl>
+                    </Paper>
                     <TextField label="Observação" value={categoriaOpcao.observacao} onChange={(e) => setCategoriaOpcao({ ...categoriaOpcao, observacao: e.target.value })} fullWidth
                      inputProps={{ maxLength: 50 }} 
                      helperText={`${categoriaOpcao.observacao.length}/50`} />
-                    <TextField label="Quantidade de itens poderá escolher" type="number" value={categoriaOpcao.quantidadeEscolhaPorProduto} onChange={(e) => setCategoriaOpcao({ ...categoriaOpcao, quantidadeEscolhaPorProduto: e.target.value })} fullWidth />
+                    <TextField label="Qtd máxima de itens a escolher" type="number" value={categoriaOpcao.quantidadeEscolhaPorProduto} onChange={(e) => setCategoriaOpcao({ ...categoriaOpcao, quantidadeEscolhaPorProduto: e.target.value })} inputProps={{ min: 1 }} fullWidth />
+                    <FormControl fullWidth>
+                      <InputLabel>Escolha Obrigatória</InputLabel>
+                      <Select value={categoriaOpcao.obrigatorio} onChange={(e) => setCategoriaOpcao({ ...categoriaOpcao, obrigatorio: e.target.value })} label="Escolha Obrigatória">
+                        <MenuItem value={1}>Sim</MenuItem>
+                        <MenuItem value={0}>Não</MenuItem>
+                      </Select>
+                    </FormControl>
                     <FormControl fullWidth>
                       <InputLabel>Status</InputLabel>
                       <Select value={categoriaOpcao.status} onChange={(e) => setCategoriaOpcao({ ...categoriaOpcao, status: e.target.value })} label="Status">
@@ -861,7 +904,20 @@ const confirmarSalvar = () => {
                         <Select
                           value={itemSelecionado}
                           label="Selecionar o Grupo de Opções"
-                          onChange={(e) => setItemSelecionado(e.target.value)}
+                          onChange={(e) => {
+                          const selecionado = itensDisponiveis.find(
+                            (item) => item.id === e.target.value
+                          );
+
+                          setItemSelecionado(e.target.value);
+
+                          if (selecionado?.idTipoDeCobranca === 1) {
+                            setSemPreco(true);
+                            setOpcao({ ...opcao, preco: "" });
+                          } else {
+                            setSemPreco(false);
+                          }
+                        }}
                         >
                           {itensDisponiveis.map((item) => (
                             <MenuItem key={item.id} value={item.id}>
@@ -878,48 +934,34 @@ const confirmarSalvar = () => {
                       value={opcao.descricao} onChange={(e) => setOpcao({ ...opcao, descricao: e.target.value })}
                       inputProps={{ maxLength: 255 }} 
                       helperText={`${opcao.descricao.length}/255`} />
-                    <Paper elevation={1} sx={{ p: 2, mb: 2 }}>
-                      <Box display="flex" flexDirection='column' gap={1}>
-                        <FormControlLabel
-                          control={
-                            <Checkbox
-                              checked={opcao.semPreco}
-                              onChange={(e) =>
-                                setOpcao({ ...opcao, semPreco: e.target.checked })
-                              }
-                            />
+                    <TextField
+                        label="Preço"
+                        disabled={semPreco} 
+                        value={opcao.preco}
+                        onChange={(e) => {
+                          let raw = e.target.value.replace(/\D/g, "");
+
+                          if (!raw) {
+                            setOpcao({ ...opcao, preco: "" });
+                            return;
                           }
-                          label="Sem preço (preço no Produto)"
-                        />
-                        <TextField
-                          label="Preço"
-                          disabled={opcao.semPreco} 
-                          value={opcao.preco}
-                          onChange={(e) => {
-                            let raw = e.target.value.replace(/\D/g, "");
 
-                            if (!raw) {
-                              setProduto({ ...opcao, preco: "" });
-                              return;
-                            }
+                          if (raw.length === 1) raw = "0" + raw;
+                          if (raw.length === 2) raw = "0" + raw;
 
-                            if (raw.length === 1) raw = "0" + raw;
-                            if (raw.length === 2) raw = "0" + raw;
+                          const reais = raw.slice(0, -2);
+                          const centavos = raw.slice(-2);
+                          const valorFormatado = `${parseInt(reais, 10)},${centavos}`;
 
-                            const reais = raw.slice(0, -2);
-                            const centavos = raw.slice(-2);
-                            const valorFormatado = `${parseInt(reais, 10)},${centavos}`;
-
-                            setProduto({ ...produto, preco: valorFormatado });
-                          }}
-                          fullWidth
-                          inputProps={{ maxLength: 15 }}
-                        />
-                      </Box>
-                    </Paper>
+                          setOpcao({ ...opcao, preco: valorFormatado });
+                        }}
+                        fullWidth
+                        inputProps={{ maxLength: 15 }}
+                    />
+                    <TextField label="Qtd máxima deste item" type="number" value={opcao.quantidadeMaximaIndividual} onChange={(e) => setOpcao({ ...opcao, quantidadeMaximaIndividual: e.target.value })} inputProps={{ min: 1 }} fullWidth />
                     <FormControl fullWidth>
                       <InputLabel>Status</InputLabel>
-                      <Select defaultValue={1} value={opcao.status} onChange={(e) => setCategoriaOpcao({ ...opcao, status: e.target.value })}  label="Status">
+                      <Select defaultValue={1} value={opcao.status} onChange={(e) => setOpcao({ ...opcao, status: e.target.value })}  label="Status">
                         <MenuItem value={1}>Ativo</MenuItem>
                         <MenuItem value={0}>Inativo</MenuItem>
                       </Select>

@@ -10,9 +10,11 @@ import RemoveIcon from "@mui/icons-material/Remove";
 import { useNavigate } from "react-router-dom";
 import { CarrinhoContext } from "../contexts/CarrinhoProvider";
 import BotaoMaisMenos from "./BotaoMaisMenos.jsx";
-import Teacher1 from "../imagens/cachoroQuente.jpg";
+import Teacher1 from "../imagens/generica.png";
+import { Checkbox } from "@mui/material";
 
-function CardProdutos({ produto }) {
+function CardProdutos({ produto, idCliente}) {
+  const baseUrl = import.meta.env.VITE_IMAGE_BASE_URL;
   const [open, setOpen] = useState(false);
   const [totalPrice, setTotalPrice] = useState(1);
   const [hover, setHover] = useState(true);
@@ -25,16 +27,19 @@ function CardProdutos({ produto }) {
 
   const quantidadeMaximaPorProduto = produto.quantidadeMaximaAcrescimoPorProduto;
   const navigate = useNavigate();
-  const imagemSrc = produto.imagemProduto ? "/imagens/1/" + produto.imagemProduto : Teacher1;
+  const imagemSrc = produto.imagem ? baseUrl + idCliente + "/" + produto.nomeCategoria + "/imagem/" + produto.imagem : Teacher1;
+  //const imagemSrcItemOpcao= opcao.imagem ? baseUrl + idCliente + "/" + produto.nomeCategoria + "/imagem/" + produto.imagem : Teacher1;
   const precoProduto = produto.preco ?? 0;
   const precoFinal = (precoProduto + valorTotalAcrescimos) * totalPrice;
 
   const handleClickOpen = () => {
     setOpen(true);
+    console.log(acrescimos);
 
     fetch(`https://localhost:7039/api/Acrescimo/${produto.produtoId}`)
       .then((res) => res.json())
-      .then((data) => setAcrescimos(data))
+      .then((data) => {setAcrescimos(data)    
+        console.log(data);})
       .catch((err) => console.error("Erro ao buscar acréscimos:", err));
 
     fetch(`https://localhost:7039/api/GrupoDeOpcao/${produto.produtoId}/grupos-de-opcoes`)
@@ -46,14 +51,20 @@ function CardProdutos({ produto }) {
   const handleClose = () => setOpen(false);
 
   const atualizarQuantidade = (id, delta, maxIndividual) => {
-    setQuantidadesAcrescimos((prev) => {
-      const atual = prev[id] || 0;
-      const totalAtual = Object.values(prev).reduce((s, q) => s + q, 0);
-      const novoValor = Math.max(0, Math.min(atual + delta, maxIndividual ?? Infinity));
-      if (quantidadeMaximaPorProduto && totalAtual + delta > quantidadeMaximaPorProduto) return prev;
-      return { ...prev, [id]: novoValor };
-    });
-  };
+  setQuantidadesAcrescimos((prev) => {
+    const atual = prev[id] || 0;
+    const totalAtual = Object.values(prev).reduce((s, q) => s + q, 0);
+
+    const limiteProduto = quantidadeMaximaPorProduto ?? Infinity;
+    const limiteIndividual = maxIndividual ?? Infinity;
+
+    // verifica se já atingiu limite do produto
+    if (totalAtual + delta > limiteProduto) return prev;
+
+    const novoValor = Math.max(0, Math.min(atual + delta, limiteIndividual));
+    return { ...prev, [id]: novoValor };
+  });
+};
 
   const atualizarOpcao = (grupoId, opcaoId, delta, maxGrupo, maxIndividual) => {
     setOpcoesSelecionadas((prev) => {
@@ -182,74 +193,296 @@ function CardProdutos({ produto }) {
 </Card>
 
       {/* Modal de detalhes */}
-      <Dialog onClose={handleClose} open={open} fullWidth maxWidth="sm">
-        <DialogTitle>
-          {produto.nomeProduto}
-          <IconButton onClick={handleClose} sx={{ position: "absolute", right: 8, top: 8 }}>
+      <Dialog onClose={handleClose} open={open} fullWidth fullScreen
+        maxWidth="lg"
+        PaperProps={{
+          sx: {
+            width: { xs: "100%", md: "60%" }, // 100% no mobile, 90% no desktop
+            margin: "auto",
+            borderRadius: 2
+          }
+        }}>
+        <DialogTitle sx={{fontFamily:'Inter',fontWeight:'900' }}>
+          {produto.nome}
+          <IconButton onClick={handleClose} sx={{ position: "absolute", right: 8, top: 8}}>
             <CloseIcon />
           </IconButton>
         </DialogTitle>
 
-        <DialogContent dividers>
-          <Box textAlign="center" mb={2}>
-            <CardMedia
-              component="img"
-              image={imagemSrc}
-              alt={produto.nomeProduto}
-              sx={{ borderRadius: 2, maxHeight: 200, objectFit: "contain" }}
-            />
-          </Box>
-          <Typography variant="body2" sx={{ mb: 2 }}>
-            {produto.descricao}
-          </Typography>
-
-          {/* Acréscimos */}
-          {acrescimos.length > 0 && (
+        <DialogContent dividers   sx={{
+    p: 0,   // padding geral
+    "& .MuiDialogContent-root": { padding: 0 } // força reset
+  }}>
+          <Box mb={2} display="flex" flexDirection="column" alignItems="center" p={1}>
             <Box mb={2}>
-              <Typography variant="subtitle2" fontWeight="bold" gutterBottom>
-                Acréscimos
-              </Typography>
-              <Divider sx={{ mb: 1 }} />
-              {quantidadeMaximaPorProduto === 1 ? (
-                <RadioGroup
-                  value={Object.entries(quantidadesAcrescimos).find(([_, v]) => v > 0)?.[0] || ""}
-                  onChange={(e) => {
-                    const idSelecionado = parseInt(e.target.value);
-                    const novos = {};
-                    acrescimos.forEach((a) => {
+              <CardMedia
+                component="img"
+                image={imagemSrc}
+                alt={produto.nomeProduto}
+                sx={{
+                  borderRadius: 2,
+                  minHeight: 250,
+                  maxWidth: "25.5rem",
+                  objectFit: "fill",
+                  display: "block",       // garante que se comporte como bloco
+                  margin: "0 auto",       // centraliza horizontalmente
+                }}
+              />
+            </Box>
+            <Typography variant="body2" sx={{ mb: 2 }}>
+              {produto.descricao}
+            </Typography>
+          </Box>
+          
+         {acrescimos.length > 0 && (
+          <Box mb={2}>
+            <Typography variant="subtitle2" fontWeight="bold" gutterBottom bgcolor={"#ebebeb"} px={1.5} py={1}>
+              <div>Acréscimos </div>
+               {quantidadeMaximaPorProduto && (
+                <Typography fontSize={11}>Escolha até {quantidadeMaximaPorProduto} item(s)</Typography>
+            )}
+            </Typography>
+            <Box p={1}>
+            {quantidadeMaximaPorProduto === 1 ? (
+              // ✅ Caso 1: só pode escolher um → RadioGroup
+              <RadioGroup
+                value={Object.entries(quantidadesAcrescimos).find(([_, v]) => v > 0)?.[0] || ""}
+                onClick={(e) => {
+                  const idSelecionado = parseInt(e.target.value);
+                  const idAtual = Object.entries(quantidadesAcrescimos).find(([_, v]) => v > 0)?.[0];
+
+                  const novos = {};
+                  acrescimos.forEach((a) => {
+                    // Se clicar de novo no selecionado, zera todos
+                    if (idAtual === a.acrescimoId.toString() && a.acrescimoId === idSelecionado) {
+                      novos[a.acrescimoId] = 0;
+                    } else {
                       novos[a.acrescimoId] = a.acrescimoId === idSelecionado ? 1 : 0;
-                    });
-                    setQuantidadesAcrescimos(novos);
-                  }}
-                >
-                  <FormControlLabel value="" control={<Radio />} label="Nenhum" />
-                  {acrescimos.map((a) => (
-                    <Box key={a.acrescimoId} sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", mb: 1 }}>
-                      <CardMedia component="img" image={`/imagens/1/${a.imagemAcrescimo}`} sx={{ width: 40, height: 40, borderRadius: "50%" }} />
-                      <Typography variant="body2">{a.nomeAcrescimo} - R$ {a.preco?.toFixed(2)}</Typography>
-                      <FormControlLabel value={a.acrescimoId.toString()} control={<Radio />} />
+                    }
+                  });
+
+                  setQuantidadesAcrescimos(novos);
+                }}
+              >
+                {acrescimos.map((a) => (
+                  <Box mb={1}>
+                    <Box
+                      key={a.acrescimoId}
+                      sx={{
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "space-between",
+                        mb: 1,
+                      }}
+                    >
+                      {/* Imagem + Nome/Preço juntos */}
+                      <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                        <CardMedia
+                          component="img"
+                          image={
+                            a.imagemAcrescimo
+                              ? baseUrl +
+                                idCliente +
+                                "/" +
+                                produto.nomeCategoria +
+                                "/imagem/" +
+                                a.imagemAcrescimo
+                              : Teacher1
+                          }
+                          sx={{ width: 50, height: 50, borderRadius: "50%" }}
+                        />
+                        <Box display="flex" flexDirection="column">
+                          <Typography variant="body2" fontWeight='bold' mb={0.5}>{a.nomeAcrescimo} 
+                           {a.descricao && (
+                          <Typography fontSize={14}>{a.descricao}</Typography>
+                          )}
+                          </Typography>
+                          <Typography variant="body2" fontWeight='bold' mb={0.5}>R$ {a.preco?.toFixed(2)}</Typography>
+                          {a.quantidadeMaximaIndividual && (
+                          <Typography fontSize={11}>Max {a.quantidadeMaximaIndividual} item(s)</Typography>
+                          )}
+                        </Box>
+                      </Box>
+                      {/* Radio sempre alinhado à direita */}
+                      <FormControlLabel
+                        labelPlacement="start"
+                        value={a.acrescimoId.toString()}
+                        control={<Radio />}
+                        label=""
+                      />
                     </Box>
-                  ))}
-                </RadioGroup>
-              ) : (
-                acrescimos.map((a) => (
-                  <Box key={a.acrescimoId} sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", mb: 1 }}>
-                    <CardMedia component="img" image={`/imagens/1/${a.imagemAcrescimo}`} sx={{ width: 40, height: 40, borderRadius: "50%" }} />
-                    <Typography variant="body2">{a.nomeAcrescimo} - R$ {a.preco?.toFixed(2)}</Typography>
-                    <Box sx={{ display: "flex", alignItems: "center", gap: 1, border: 1, borderRadius: 5, borderColor: "lightgrey", px: 1 }}>
-                      <IconButton size="small" onClick={() => atualizarQuantidade(a.acrescimoId, -1, a.quantidadeMaximaAcrescimoIndividual)}>
+                    <Divider/>
+                  </Box>
+                ))}
+              </RadioGroup>
+
+            ) : (
+              // ✅ Caso 2: pode escolher vários
+              acrescimos.map((a) => {
+                const qtd = quantidadesAcrescimos[a.acrescimoId] || 0;
+                const limiteIndividual = a.quantidadeMaximaIndividual ?? Infinity;
+
+                if (limiteIndividual === 1) {
+                  // checkbox
+                  return (
+                  <Box mb={1}>
+                    <Box
+                      key={a.acrescimoId}
+                      sx={{
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "space-between",
+                        mb: 1,
+                      }}
+                    >
+                      {/* Imagem + Nome/Preço juntos */}
+                      <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                        <CardMedia
+                          component="img"
+                          image={
+                            a.imagemAcrescimo
+                              ? baseUrl +
+                                idCliente +
+                                "/" +
+                                produto.nomeCategoria +
+                                "/imagem/" +
+                                a.imagemAcrescimo
+                              : Teacher1
+                          }
+                          sx={{ width: 50, height: 50, borderRadius: "50%" }}
+                        />
+                        <Box display="flex" flexDirection="column">
+                          <Typography variant="body2" fontWeight='bold' mb={0.5}>{a.nomeAcrescimo} 
+                           {a.descricao && (
+                          <Typography fontSize={14}>{a.descricao}</Typography>
+                          )}
+                          </Typography>
+                          <Typography variant="body2" fontWeight='bold' mb={0.5}>R$ {a.preco?.toFixed(2)}</Typography>
+                          {a.quantidadeMaximaIndividual && (
+                          <Typography fontSize={11}>Max {a.quantidadeMaximaIndividual} item(s)</Typography>
+                          )}
+                        </Box>
+                      </Box>
+
+                      {/* Checkbox no canto direito */}
+                      <FormControlLabel
+                        labelPlacement="start"
+                        control={
+                          <Checkbox
+                            checked={qtd > 0}
+                            onChange={(e) => {
+                              const delta = e.target.checked ? 1 : -1;
+                              atualizarQuantidade(
+                                a.acrescimoId,
+                                delta,
+                                a.quantidadeMaximaIndividual
+                              );
+                            }}
+                            size="medium"
+                            sx={{
+                              m: 0,
+                              "& .MuiSvgIcon-root": { fontSize: 25 }, // aumenta a caixa
+                            }}
+                          />
+                        }
+                        label=""
+                      />
+                    </Box>
+                    <Divider mb={0.5}/>
+                  </Box>
+                  );
+                }
+
+                  // mais/menos
+                  return (
+                  <Box mb={1}>
+                    <Box
+                    key={a.acrescimoId}
+                    sx={{
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "space-between",
+                      mb: 1,
+                    }}
+                  >
+                    {/* Imagem + Nome/Preço juntos */}
+                    <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                      <CardMedia
+                        component="img"
+                        image={
+                          a.imagemAcrescimo
+                            ? baseUrl +
+                              idCliente +
+                              "/" +
+                              produto.nomeCategoria +
+                              "/imagem/" +
+                              a.imagemAcrescimo
+                            : Teacher1
+                        }
+                        sx={{ width: 50, height: 50, borderRadius: "50%" }}
+                      />
+                      <Box display="flex" flexDirection="column">
+                          <Typography variant="body2" fontWeight='bold' mb={0.5}>{a.nomeAcrescimo} 
+                           {a.descricao && (
+                          <Typography fontSize={14}>{a.descricao}</Typography>
+                          )}
+                          </Typography>
+                          <Typography variant="body2" fontWeight='bold' mb={0.5}>R$ {a.preco?.toFixed(2)}</Typography>
+                          {a.quantidadeMaximaIndividual && (
+                          <Typography fontSize={11}>Max {a.quantidadeMaximaIndividual} item(s)</Typography>
+                          )}
+                        </Box>
+                    </Box>
+
+                    {/* Quantidade no canto direito */}
+                    <Box
+                      labelPlacement="start"
+                      sx={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 1,
+                        border: 1,
+                        borderRadius: 5,
+                        borderColor: "lightgrey",
+                        px: 1,
+                      }}
+                    >
+                      <IconButton
+                        size="small"
+                        onClick={() =>
+                          atualizarQuantidade(
+                            a.acrescimoId,
+                            -1,
+                            a.quantidadeMaximaIndividual
+                          )
+                        }
+                      >
                         <RemoveIcon fontSize="small" color="error" />
                       </IconButton>
-                      <Typography>{quantidadesAcrescimos[a.acrescimoId] || 0}</Typography>
-                      <IconButton size="small" onClick={() => atualizarQuantidade(a.acrescimoId, 1, a.quantidadeMaximaAcrescimoIndividual)}>
+                      <Typography>{qtd}</Typography>
+                      <IconButton
+                        size="small"
+                        onClick={() =>
+                          atualizarQuantidade(
+                            a.acrescimoId,
+                            1,
+                            a.quantidadeMaximaIndividual
+                          )
+                        }
+                      >
                         <AddIcon fontSize="small" color="success" />
                       </IconButton>
                     </Box>
                   </Box>
-                ))
+                   <Divider/>
+                  </Box>
+                  );
+                })
               )}
             </Box>
+          </Box>
           )}
+
 
           {/* Grupos de opções */}
           {gruposDeOpcao.map((grupo) => (
@@ -301,10 +534,10 @@ function CardProdutos({ produto }) {
 
           {/* Observações */}
           <Box mb={2}>
-            <Typography variant="subtitle2" fontWeight="bold" gutterBottom>
+            <Typography variant="subtitle2" fontWeight="bold" gutterBottom px={1.5} py={1} bgcolor={"#ebebeb"} >
               Observações
             </Typography>
-            <Divider sx={{ mb: 1 }} />
+            <Box px={1}>
             <TextField
               multiline
               fullWidth
@@ -313,6 +546,7 @@ function CardProdutos({ produto }) {
               value={observacoes}
               onChange={(e) => setObservacoes(e.target.value)}
             />
+          </Box>
           </Box>
         </DialogContent>
 
