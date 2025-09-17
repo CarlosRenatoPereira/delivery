@@ -24,29 +24,102 @@ function CardProdutos({ produto, idCliente}) {
   const [valorTotalAcrescimos, setValorTotalAcrescimos] = useState(0);
   const [gruposDeOpcao, setGruposDeOpcao] = useState([]);
   const [opcoesSelecionadas, setOpcoesSelecionadas] = useState({});
+  const [valorTotalOpcoes, setValorTotalOpcoes] = useState(0);
 
   const quantidadeMaximaPorProduto = produto.quantidadeMaximaAcrescimoPorProduto;
   const navigate = useNavigate();
   const imagemSrc = produto.imagem ? baseUrl + idCliente + "/" + produto.nomeCategoria + "/imagem/" + produto.imagem : Teacher1;
   //const imagemSrcItemOpcao= opcao.imagem ? baseUrl + idCliente + "/" + produto.nomeCategoria + "/imagem/" + produto.imagem : Teacher1;
-  const precoProduto = produto.preco ?? 0;
-  const precoFinal = (precoProduto + valorTotalAcrescimos) * totalPrice;
+  const precoProduto = (produto.aPartirDe == 1) 
+    ? 0 
+    : (produto.preco ?? 0);
+  const precoFinal = (precoProduto + valorTotalAcrescimos + valorTotalOpcoes) * totalPrice;
+  const precoFinalProduto = (precoProduto + valorTotalAcrescimos + valorTotalOpcoes)
 
-  const handleClickOpen = () => {
-    setOpen(true);
-    console.log(acrescimos);
+ useEffect(() => {
+  let totalOpcoes = 0;
 
-    fetch(`https://localhost:7039/api/Acrescimo/${produto.produtoId}`)
-      .then((res) => res.json())
-      .then((data) => {setAcrescimos(data)    
-        console.log(data);})
-      .catch((err) => console.error("Erro ao buscar acréscimos:", err));
+  (gruposDeOpcao || []).forEach((grupo) => {
+    const selecionadas = opcoesSelecionadas[grupo.id] || {};
+    const opcoesEscolhidas = (grupo.opcao || []).filter(
+      (o) => selecionadas[o.idOpcao] > 0
+    );
 
-    fetch(`https://localhost:7039/api/GrupoDeOpcao/${produto.produtoId}/grupos-de-opcoes`)
-      .then((res) => res.json())
-      .then((data) => setGruposDeOpcao(data))
-      .catch((err) => console.error("Erro ao buscar grupos de opção:", err));
-  };
+    if (opcoesEscolhidas.length === 0) return;
+
+    switch (grupo.descricaoTipoDeCobranca) {
+      case "Sem preço (cobrar somente o valor do produto)":
+        // não altera o preço
+        break;
+
+      case "Somar o valor da(s) opção(s) com o valor do produto":
+        totalOpcoes += opcoesEscolhidas.reduce(
+          (sum, o) => sum + o.preco * selecionadas[o.idOpcao],
+          0
+        );
+        break;
+
+      case "É o valor do produto e calcular a média das opções escolhidas":
+        const soma = opcoesEscolhidas.reduce((sum, o) => sum + o.preco, 0);
+        totalOpcoes += soma / opcoesEscolhidas.length;
+        break;
+
+      case "É o valor do produto e cobrar o maior valor das opções escolhidas":
+        const maior = Math.max(...opcoesEscolhidas.map((o) => o.preco));
+        totalOpcoes += maior;
+        break;
+
+      default:
+        break;
+    }
+  });
+
+  setValorTotalOpcoes(totalOpcoes);
+}, [opcoesSelecionadas, gruposDeOpcao]);
+
+
+const handleClickOpen = async () => {
+  setOpen(true);
+
+  try {
+    // 🔹 Buscar acréscimos
+    const responseAcrescimos = await fetch(`https://localhost:7039/api/Acrescimo/${produto.produtoId}`);
+
+    if (!responseAcrescimos.ok) {
+      if (responseAcrescimos.status === 404) {
+        console.warn("Nenhum acréscimo encontrado para este produto.");
+        setAcrescimos([]);
+      } else {
+        throw new Error(`Erro na requisição de acréscimos: ${responseAcrescimos.status}`);
+      }
+    } else {
+      const dataAcrescimos = await responseAcrescimos.json();
+      setAcrescimos(dataAcrescimos);
+    }
+    // 🔹 Buscar grupos de opção
+    const responseGrupos = await fetch(
+      `https://localhost:7039/api/GrupoDeOpcao/${produto.produtoId}/grupos-de-opcoes`
+    );
+
+    if (!responseGrupos.ok) {
+      if (responseGrupos.status === 404) {
+        console.warn("Nenhum grupo de opção encontrado para este produto.");
+        setGruposDeOpcao([]);
+      } else {
+        throw new Error(`Erro na requisição de grupos de opção: ${responseGrupos.status}`);
+      }
+    } else {
+      const dataGrupos = await responseGrupos.json();
+      setGruposDeOpcao(dataGrupos);
+    }
+
+  } catch (error) {
+    console.error("Erro ao buscar dados do produto:", error);
+    setAcrescimos([]);
+    setGruposDeOpcao([]);
+  }
+};
+
 
   const handleClose = () => setOpen(false);
 
@@ -66,23 +139,27 @@ function CardProdutos({ produto, idCliente}) {
   });
 };
 
-  const atualizarOpcao = (grupoId, opcaoId, delta, maxGrupo, maxIndividual) => {
-    setOpcoesSelecionadas((prev) => {
-      const grupo = prev[grupoId] || {};
-      const atual = grupo[opcaoId] || 0;
-      const totalGrupo = Object.values(grupo).reduce((s, q) => s + q, 0);
-      const novoValor = Math.max(0, Math.min(atual + delta, maxIndividual ?? Infinity));
-      if (maxGrupo && totalGrupo + delta > maxGrupo) return prev;
-      return { ...prev, [grupoId]: { ...grupo, [opcaoId]: novoValor } };
-    });
-  };
+const atualizarOpcao = (grupoId, opcaoId, delta, maxGrupo, maxIndividual) => {
+  setOpcoesSelecionadas((prev) => {
+    const grupo = prev[grupoId] || {};
+    const atual = grupo[opcaoId] || 0;
+    const totalGrupo = Object.values(grupo).reduce((s, q) => s + q, 0);
+
+    const novoValor = Math.max(0, Math.min(atual + delta, maxIndividual ?? Infinity));
+    if (maxGrupo && totalGrupo + delta > maxGrupo) return prev;
+
+    return { ...prev, [grupoId]: { ...grupo, [opcaoId]: novoValor } };
+  });
+};
 
   useEffect(() => {
+    if (acrescimos.length > 0){
     const total = acrescimos.reduce((sum, a) => {
       const qtd = quantidadesAcrescimos[a.acrescimoId] || 0;
       return sum + qtd * (a.preco || 0);
     }, 0);
     setValorTotalAcrescimos(total);
+    } 
   }, [quantidadesAcrescimos, acrescimos]);
 
   const handleAddToCart = () => {
@@ -92,16 +169,17 @@ function CardProdutos({ produto, idCliente}) {
 
     const opcoesSelecionadasFormatadas = [];
     for (const grupo of gruposDeOpcao) {
-      const selecionadas = opcoesSelecionadas[grupo.idGrupo] || {};
+      const selecionadas = opcoesSelecionadas[grupo.id] || {};
       for (const [id, qtd] of Object.entries(selecionadas)) {
         if (qtd > 0) {
-          const opcao = grupo.opcoes.find((o) => o.idOpcao === parseInt(id));
+          const opcao = grupo.opcao.find((o) => o.idOpcao === parseInt(id));
           if (opcao) {
-            opcoesSelecionadasFormatadas.push({
-              ...opcao,
-              quantidade: qtd,
-              idGrupo: grupo.idGrupo,
-              nomeGrupo: grupo.nomeGrupo,
+           opcoesSelecionadasFormatadas.push({
+            ...opcao,
+            quantidade: qtd,
+            idGrupo: grupo.id,
+            nomeGrupo: grupo.nome,
+            descricaoTipoDeCobranca: grupo.descricaoTipoDeCobranca
             });
           }
         }
@@ -109,12 +187,14 @@ function CardProdutos({ produto, idCliente}) {
     }
 
     const produtoRecebido = {
+      idCliente: idCliente,
+      nomeCategoria: produto.nomeCategoria,
       idProduto: produto.produtoId,
-      nomeProduto: produto.nomeProduto,
-      preco: produto.preco,
-      imagemProduto: produto.imagemProduto,
+      nomeProduto: produto.nome,
+      preco: precoFinalProduto,
+      imagemProduto: produto.imagem,
       quantity: totalPrice,
-      observacoes,
+      observacoes: observacoes,
       acrescimos: acrescimosSelecionados,
       opcoes: opcoesSelecionadasFormatadas,
     };
@@ -174,6 +254,7 @@ function CardProdutos({ produto, idCliente}) {
 
     {/* Preço no final */}
     <Typography variant="subtitle2" fontWeight="bold" color="text.primary" sx={{ fontSize: "1rem" }}>
+        {produto.aPartirDe === 1 && "A partir de "}
      R$ {produto.preco?.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
     </Typography>
   </CardContent>
@@ -210,9 +291,9 @@ function CardProdutos({ produto, idCliente}) {
         </DialogTitle>
 
         <DialogContent dividers   sx={{
-    p: 0,   // padding geral
-    "& .MuiDialogContent-root": { padding: 0 } // força reset
-  }}>
+          p: 0,   // padding geral
+          "& .MuiDialogContent-root": { padding: 0 } // força reset
+        }}>
           <Box mb={2} display="flex" flexDirection="column" alignItems="center" p={1}>
             <Box mb={2}>
               <CardMedia
@@ -292,12 +373,12 @@ function CardProdutos({ produto, idCliente}) {
                           sx={{ width: 50, height: 50, borderRadius: "50%" }}
                         />
                         <Box display="flex" flexDirection="column">
-                          <Typography variant="body2" fontWeight='bold' mb={0.5}>{a.nomeAcrescimo} 
+                          <Typography variant="body2" fontWeight='bold' mb={0.5} fontSize={15}>{a.nomeAcrescimo} 
                            {a.descricao && (
-                          <Typography fontSize={14}>{a.descricao}</Typography>
+                          <Typography fontSize={12}  align="justify">{a.descricao}</Typography>
                           )}
                           </Typography>
-                          <Typography variant="body2" fontWeight='bold' mb={0.5}>R$ {a.preco?.toFixed(2)}</Typography>
+                          <Typography variant="body2" fontWeight='bold' mb={0.5} fontSize={15}>R$ {a.preco?.toFixed(2)}</Typography>
                           {a.quantidadeMaximaIndividual && (
                           <Typography fontSize={11}>Max {a.quantidadeMaximaIndividual} item(s)</Typography>
                           )}
@@ -352,12 +433,12 @@ function CardProdutos({ produto, idCliente}) {
                           sx={{ width: 50, height: 50, borderRadius: "50%" }}
                         />
                         <Box display="flex" flexDirection="column">
-                          <Typography variant="body2" fontWeight='bold' mb={0.5}>{a.nomeAcrescimo} 
+                          <Typography variant="body2" fontWeight='bold' mb={0.5} fontSize={15}>{a.nomeAcrescimo} 
                            {a.descricao && (
-                          <Typography fontSize={14}>{a.descricao}</Typography>
+                          <Typography fontSize={12}  align="justify">{a.descricao}</Typography>
                           )}
                           </Typography>
-                          <Typography variant="body2" fontWeight='bold' mb={0.5}>R$ {a.preco?.toFixed(2)}</Typography>
+                          <Typography variant="body2" fontWeight='bold' mb={0.5} fontSize={15}>R$ {a.preco?.toFixed(2)}</Typography>
                           {a.quantidadeMaximaIndividual && (
                           <Typography fontSize={11}>Max {a.quantidadeMaximaIndividual} item(s)</Typography>
                           )}
@@ -422,12 +503,12 @@ function CardProdutos({ produto, idCliente}) {
                         sx={{ width: 50, height: 50, borderRadius: "50%" }}
                       />
                       <Box display="flex" flexDirection="column">
-                          <Typography variant="body2" fontWeight='bold' mb={0.5}>{a.nomeAcrescimo} 
+                          <Typography variant="body2" fontWeight='bold' mb={0.5} fontSize={15}>{a.nomeAcrescimo} 
                            {a.descricao && (
-                          <Typography fontSize={14}>{a.descricao}</Typography>
+                          <Typography fontSize={12}  align="justify">{a.descricao}</Typography>
                           )}
                           </Typography>
-                          <Typography variant="body2" fontWeight='bold' mb={0.5}>R$ {a.preco?.toFixed(2)}</Typography>
+                          <Typography variant="body2" fontWeight='bold' mb={0.5} fontSize={15}>R$ {a.preco?.toFixed(2)}</Typography>
                           {a.quantidadeMaximaIndividual && (
                           <Typography fontSize={11}>Max {a.quantidadeMaximaIndividual} item(s)</Typography>
                           )}
@@ -450,11 +531,11 @@ function CardProdutos({ produto, idCliente}) {
                       <IconButton
                         size="small"
                         onClick={() =>
-                          atualizarQuantidade(
+                         atualizarQuantidade(
                             a.acrescimoId,
                             -1,
                             a.quantidadeMaximaIndividual
-                          )
+                        )
                         }
                       >
                         <RemoveIcon fontSize="small" color="error" />
@@ -463,10 +544,10 @@ function CardProdutos({ produto, idCliente}) {
                       <IconButton
                         size="small"
                         onClick={() =>
-                          atualizarQuantidade(
-                            a.acrescimoId,
-                            1,
-                            a.quantidadeMaximaIndividual
+                           atualizarQuantidade(
+                              a.acrescimoId,
+                              +1,
+                              a.quantidadeMaximaIndividual
                           )
                         }
                       >
@@ -486,48 +567,258 @@ function CardProdutos({ produto, idCliente}) {
 
           {/* Grupos de opções */}
           {gruposDeOpcao.map((grupo) => (
-            <Box key={grupo.idGrupo} mb={2}>
-              <Typography variant="subtitle2" fontWeight="bold" gutterBottom>
-                {grupo.nomeGrupo}
-              </Typography>
-              <Divider sx={{ mb: 1 }} />
-              {grupo.quantidadeMaximaEscolha === 1 ? (
+            <Box key={grupo.id} sx={{ mb: 2 }}>
+              {grupo.mostrarNome === 1 ? (
+                <Typography variant="subtitle2" fontWeight="bold" gutterBottom bgcolor={"#ebebeb"} px={1.5} py={1}>
+                  {grupo.nome}
+                  {grupo.quantidadeEscolhaPorProduto && (
+                <Typography fontSize={11}>Escolha até {grupo.quantidadeEscolhaPorProduto} item(s)</Typography>
+            )}
+                </Typography>
+              ) : (
+                <Typography variant="subtitle2" fontWeight="bold" gutterBottom bgcolor={"#ebebeb"} px={1.5} py={1}> 
+                  Opções
+                   {grupo.quantidadeEscolhaPorProduto && (
+                <Typography fontSize={11}>Escolha até {grupo.quantidadeEscolhaPorProduto} item(s)</Typography>
+            )}
+                </Typography>
+              )}
+
+              {/* Caso 1: RadioGroup (só pode 1 no grupo) */}
+              {grupo.quantidadeEscolhaPorProduto === 1 ? (
                 <RadioGroup
-                  value={Object.entries(opcoesSelecionadas[grupo.idGrupo] || {}).find(([_, v]) => v > 0)?.[0] || ""}
-                  onChange={(e) => {
+                  value={Object.entries(opcoesSelecionadas[grupo.id] || {}).find(([_, v]) => v > 0)?.[0] || ""}
+                  onClick={(e) => {
                     const idSelecionado = parseInt(e.target.value);
+                    const selecionadoAtual = Object.entries(opcoesSelecionadas[grupo.id] || {}).find(([_, v]) => v > 0)?.[0];
+
+                    // Se clicou no mesmo já selecionado -> limpa (desmarca)
+                    if (selecionadoAtual && parseInt(selecionadoAtual) === idSelecionado) {
+                      setOpcoesSelecionadas((prev) => ({ ...prev, [grupo.id]: {} }));
+                      return;
+                    }
+
+                    // Caso normal -> marca o novo
                     const novos = {};
-                    grupo.opcoes.forEach((o) => {
+                    grupo.opcao.forEach((o) => {
                       novos[o.idOpcao] = o.idOpcao === idSelecionado ? 1 : 0;
                     });
-                    setOpcoesSelecionadas((prev) => ({ ...prev, [grupo.idGrupo]: novos }));
+                    setOpcoesSelecionadas((prev) => ({ ...prev, [grupo.id]: novos }));
                   }}
                 >
-                  <FormControlLabel value="" control={<Radio />} label="Nenhum" />
-                  {grupo.opcoes.map((opcao) => (
-                    <Box key={opcao.idOpcao} sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", mb: 1 }}>
-                      <CardMedia component="img" image={`/imagens/1/${opcao.imagem}`} sx={{ width: 40, height: 40, borderRadius: "50%" }} />
-                      <Typography variant="body2">{opcao.nomeOpcao} - R$ {opcao.preco?.toFixed(2)}</Typography>
-                      <FormControlLabel value={opcao.idOpcao.toString()} control={<Radio />} />
+                  {grupo.opcao?.map((opcao) => (
+                    <Box mb={1}>
+                    <Box mr={1} e ml={1}
+                      key={opcao.idOpcao}
+                      sx={{
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "space-between",
+                        mb: 1,
+                      }}
+                    >
+                      {/* Imagem + Nome/Preço juntos */}
+                      <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                        <CardMedia
+                          component="img"
+                          image={
+                            opcao.imagem
+                              ? baseUrl +
+                                idCliente +
+                                "/" +
+                                produto.nomeCategoria +
+                                "/imagem/" +
+                                opcao.imagem
+                              : Teacher1
+                          }
+                          sx={{ width: 50, height: 50, borderRadius: "50%" }}
+                        />
+                        <Box display="flex" flexDirection="column">
+                          <Typography variant="body2" fontWeight='bold' mb={0.5} fontSize={15}>{opcao.nomeOpcao} 
+                           {opcao.descricao && (
+                          <Typography fontSize={12} mt={0.5} e mb={0.5} align="justify">{opcao.descricao}</Typography>
+                          )}
+                          </Typography>
+                          <Typography variant="body2" fontWeight='bold' mb={0.5} fontSize={15}>R$ {opcao.preco?.toFixed(2)}</Typography>
+                        </Box>
+                      </Box>
+                      {/* Radio sempre alinhado à direita */}
+                      <FormControlLabel
+                        labelPlacement="start"
+                        value={opcao.idOpcao.toString()}
+                        control={<Radio />}
+                        label=""
+                      />
                     </Box>
-                  ))}
-                </RadioGroup>
+                    <Divider/>
+                  </Box>
+                ))}
+              </RadioGroup>
               ) : (
-                grupo.opcoes.map((opcao) => (
-                  <Box key={opcao.idOpcao} sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", mb: 1 }}>
-                    <CardMedia component="img" image={`/imagens/1/${opcao.imagem}`} sx={{ width: 40, height: 40, borderRadius: "50%" }} />
-                    <Typography variant="body2">{opcao.nomeOpcao} - R$ {opcao.preco?.toFixed(2)}</Typography>
-                    <Box sx={{ display: "flex", alignItems: "center", gap: 1, border: 1, borderRadius: 5, borderColor: "lightgrey", px: 1 }}>
-                      <IconButton size="small" onClick={() => atualizarOpcao(grupo.idGrupo, opcao.idOpcao, -1, grupo.quantidadeMaximaEscolha, 1)}>
+                /* Caso 2 e 3: Checkbox ou Mais/Menos */
+                grupo.opcao?.map((opcao) => {
+                  const qtd = opcoesSelecionadas[grupo.id]?.[opcao.idOpcao] || 0;
+
+                  // Caso 2: Checkbox (maxIndividual = 1)
+                  if (opcao.quantidadeMaximaIndividual === 1) {
+                    return (
+                    <Box mb={1} mr={1}>
+                      <Box
+                        key={opcao.idOpcao}
+                        sx={{
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "space-between",
+                          mb: 1,
+                        }}
+                      >
+                      {/* Imagem + Nome/Preço juntos */}
+                      <Box sx={{ display: "flex", alignItems: "center", gap: 1,ml:0.5 }}>
+                        <CardMedia
+                          component="img"
+                          image={
+                            opcao.imargem
+                              ? baseUl +
+                                idCliente +
+                                "/" +
+                                produto.nomeCategoria +
+                                "/imagem/" +
+                                opcao.imargem
+                              : Teacher1
+                          }
+                          sx={{ width: 50, height: 50, borderRadius: "50%" }}
+                        />
+                        <Box display="flex" flexDirection="column">
+                          <Typography variant="body2" fontWeight='bold' fontSize={15} mb={0.5}>{opcao.nomeOpcao} 
+                           {opcao.descricao && (
+                          <Typography fontSize={12} mt={0.5} e mb={0.5} align="justify">{opcao.descricao}</Typography>
+                          )}
+                          </Typography>
+                          <Typography variant="body2" fontWeight='bold' mb={0.5} fontSize={15}>R$ {opcao.preco?.toFixed(2)}</Typography>
+                        </Box>
+                      </Box>
+
+                      {/* Checkbox no canto direito */}
+                      <FormControlLabel
+                        labelPlacement="start"
+                        control={
+                          <Checkbox
+                            checked={qtd > 0}
+                            onChange={(e) => {
+                              const delta = e.target.checked ? 1 : -1;
+                               atualizarOpcao(
+                                  grupo.id,
+                                  opcao.idOpcao,
+                                  delta,
+                                  grupo.quantidadeEscolhaPorProduto,
+                                  opcao.quantidadeMaximaIndividual
+                                );
+                            }}
+                            size="medium"
+                            sx={{
+                              m: 0,
+                              "& .MuiSvgIcon-root": { fontSize: 25 }, // aumenta a caixa
+                            }}
+                          />
+                        }
+                        label=""
+                      />
+                    </Box>
+                    <Divider mb={0.5}/>
+                  </Box>
+                    );
+                  }
+
+                  // Caso 3: Mais/Menos (maxIndividual > 1)
+                  return (
+                  <Box mb={1} mr={1}>
+                    <Box
+                    key={opcao.idOpcao
+                    }
+                    sx={{
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "space-between",
+                      mb: 1,
+                    }}
+                  >
+                    {/* Imagem + Nome/Preço juntos */}
+                    <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                      <CardMedia
+                        component="img"
+                        image={
+                          opcao.imagem
+                            ? baseUrl +
+                              idCliente +
+                              "/" +
+                              produto.nomeCategoria +
+                              "/imagem/" +
+                              opcao.imagem
+                            : Teacher1
+                        }
+                        sx={{ width: 50, height: 50, borderRadius: "50%" }}
+                      />
+                      <Box display="flex" flexDirection="column">
+                          <Typography variant="body2" fontWeight='bold' mb={0.5} fontSize={15}>{opcao.nomeOpcao} 
+                           {opcao.descricao && (
+                          <Typography fontSize={12}  align="justify">{opcao.descricao}</Typography>
+                          )}
+                          </Typography>
+                          <Typography variant="body2" fontWeight='bold' mb={0.5} fontSize={15}>R$ {opcao.preco?.toFixed(2)}</Typography>
+                          {opcao.quantidadeMaximaIndividual && (
+                          <Typography fontSize={11}>Max {opcao.quantidadeMaximaIndividual} item(s)</Typography>
+                          )}
+                        </Box>
+                    </Box>
+
+                    {/* Quantidade no canto direito */}
+                    <Box
+                      labelPlacement="start"
+                      sx={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 1,
+                        border: 1,
+                        borderRadius: 5,
+                        borderColor: "lightgrey",
+                        px: 1,
+                      }}
+                    >
+                      <IconButton
+                        size="small"
+                        onClick={() =>
+                          atualizarOpcao(
+                              grupo.id,
+                              opcao.idOpcao,
+                              -1,
+                              grupo.quantidadeEscolhaPorProduto,
+                              opcao.quantidadeMaximaIndividual
+                         )
+                        }
+                      >
                         <RemoveIcon fontSize="small" color="error" />
                       </IconButton>
-                      <Typography>{opcoesSelecionadas[grupo.idGrupo]?.[opcao.idOpcao] || 0}</Typography>
-                      <IconButton size="small" onClick={() => atualizarOpcao(grupo.idGrupo, opcao.idOpcao, 1, grupo.quantidadeMaximaEscolha, 1)}>
+                      <Typography>{qtd}</Typography>
+                      <IconButton
+                        size="small"
+                        onClick={() =>
+                          atualizarOpcao(
+                            grupo.id,
+                            opcao.idOpcao,
+                            +1,
+                            grupo.quantidadeEscolhaPorProduto,
+                            opcao.quantidadeMaximaIndividual
+                         )
+                        }
+                      >
                         <AddIcon fontSize="small" color="success" />
                       </IconButton>
                     </Box>
                   </Box>
-                ))
+                   <Divider/>
+                  </Box>
+                  );
+                })
               )}
             </Box>
           ))}

@@ -83,7 +83,9 @@ function App() {
           }
         });
       },
-      { threshold: 0.4 }
+      { threshold: 0.4,
+         rootMargin: "-100px 0px 0px 0px", // ajusta conforme altura do menu
+       }
     );
 
     Object.values(sectionRefs.current).forEach((el) => {
@@ -107,6 +109,19 @@ function App() {
     });
   }
 };
+
+useEffect(() => {
+  if (!categoriaSelecionada) return;
+
+  const el = menuRefs.current[categoriaSelecionada.categoriaId];
+  if (el) {
+    el.scrollIntoView({
+      behavior: "smooth",
+      inline: "center", // centraliza no eixo X
+      block: "nearest",
+    });
+  }
+}, [categoriaSelecionada]);
 
   if (loading) return <Loading mensagem="Buscando dados da loja..." />;
 
@@ -132,7 +147,7 @@ function App() {
         }}
       >
         {categorias.map((cat) => (
-          <MUICard
+          <Box
             key={cat.categoriaId}
             ref={(el) => (menuRefs.current[cat.categoriaId] = el)}
             onClick={() => handleCategoriaClick(cat.categoriaId)}
@@ -142,13 +157,12 @@ function App() {
               px: 2,
               borderBottom:
                 categoriaSelecionada?.categoriaId === cat.categoriaId
-                  ? "2px inset black"
-                  : "none",
+                  ? "2px solid #940c0c"
+                  : "2px solid transparent",
               color:
                 categoriaSelecionada?.categoriaId === cat.categoriaId
                   ? "#940c0c"
                   : "black",
-              transition: "0.2s",
               fontWeight: "bold",
               fontSize: "0.9rem",
               "&:hover": { transform: "scale(1.05)" },
@@ -156,10 +170,11 @@ function App() {
               justifyContent: "center",
               alignItems: "center",
               flexShrink: 0,
+              transition: "all 0.2s",
             }}
           >
             {cat.nomeCategoria}
-          </MUICard>
+          </Box>
         ))}
       </Box>
 
