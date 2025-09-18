@@ -218,7 +218,9 @@ const atualizarOpcao = (grupoId, opcaoId, delta, maxGrupo, maxIndividual) => {
     mt: 1,
     cursor: "pointer",
     overflow: "hidden",
-    p: 0
+    p: 0,
+    ml:0,
+    mr:0
   }}
 >
   <CardContent
@@ -314,257 +316,7 @@ const atualizarOpcao = (grupoId, opcaoId, delta, maxGrupo, maxIndividual) => {
               {produto.descricao}
             </Typography>
           </Box>
-          
-         {acrescimos.length > 0 && (
-          <Box mb={2}>
-            <Typography variant="subtitle2" fontWeight="bold" gutterBottom bgcolor={"#ebebeb"} px={1.5} py={1}>
-              <div>Acréscimos </div>
-               {quantidadeMaximaPorProduto && (
-                <Typography fontSize={11}>Escolha até {quantidadeMaximaPorProduto} item(s)</Typography>
-            )}
-            </Typography>
-            <Box p={1}>
-            {quantidadeMaximaPorProduto === 1 ? (
-              // ✅ Caso 1: só pode escolher um → RadioGroup
-              <RadioGroup
-                value={Object.entries(quantidadesAcrescimos).find(([_, v]) => v > 0)?.[0] || ""}
-                onClick={(e) => {
-                  const idSelecionado = parseInt(e.target.value);
-                  const idAtual = Object.entries(quantidadesAcrescimos).find(([_, v]) => v > 0)?.[0];
-
-                  const novos = {};
-                  acrescimos.forEach((a) => {
-                    // Se clicar de novo no selecionado, zera todos
-                    if (idAtual === a.acrescimoId.toString() && a.acrescimoId === idSelecionado) {
-                      novos[a.acrescimoId] = 0;
-                    } else {
-                      novos[a.acrescimoId] = a.acrescimoId === idSelecionado ? 1 : 0;
-                    }
-                  });
-
-                  setQuantidadesAcrescimos(novos);
-                }}
-              >
-                {acrescimos.map((a) => (
-                  <Box mb={1}>
-                    <Box
-                      key={a.acrescimoId}
-                      sx={{
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "space-between",
-                        mb: 1,
-                      }}
-                    >
-                      {/* Imagem + Nome/Preço juntos */}
-                      <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-                        <CardMedia
-                          component="img"
-                          image={
-                            a.imagemAcrescimo
-                              ? baseUrl +
-                                idCliente +
-                                "/" +
-                                produto.nomeCategoria +
-                                "/imagem/" +
-                                a.imagemAcrescimo
-                              : Teacher1
-                          }
-                          sx={{ width: 50, height: 50, borderRadius: "50%" }}
-                        />
-                        <Box display="flex" flexDirection="column">
-                          <Typography variant="body2" fontWeight='bold' mb={0.5} fontSize={15}>{a.nomeAcrescimo} 
-                           {a.descricao && (
-                          <Typography fontSize={12}  align="justify">{a.descricao}</Typography>
-                          )}
-                          </Typography>
-                          <Typography variant="body2" fontWeight='bold' mb={0.5} fontSize={15}>R$ {a.preco?.toFixed(2)}</Typography>
-                          {a.quantidadeMaximaIndividual && (
-                          <Typography fontSize={11}>Max {a.quantidadeMaximaIndividual} item(s)</Typography>
-                          )}
-                        </Box>
-                      </Box>
-                      {/* Radio sempre alinhado à direita */}
-                      <FormControlLabel
-                        labelPlacement="start"
-                        value={a.acrescimoId.toString()}
-                        control={<Radio />}
-                        label=""
-                      />
-                    </Box>
-                    <Divider/>
-                  </Box>
-                ))}
-              </RadioGroup>
-
-            ) : (
-              // ✅ Caso 2: pode escolher vários
-              acrescimos.map((a) => {
-                const qtd = quantidadesAcrescimos[a.acrescimoId] || 0;
-                const limiteIndividual = a.quantidadeMaximaIndividual ?? Infinity;
-
-                if (limiteIndividual === 1) {
-                  // checkbox
-                  return (
-                  <Box mb={1}>
-                    <Box
-                      key={a.acrescimoId}
-                      sx={{
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "space-between",
-                        mb: 1,
-                      }}
-                    >
-                      {/* Imagem + Nome/Preço juntos */}
-                      <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-                        <CardMedia
-                          component="img"
-                          image={
-                            a.imagemAcrescimo
-                              ? baseUrl +
-                                idCliente +
-                                "/" +
-                                produto.nomeCategoria +
-                                "/imagem/" +
-                                a.imagemAcrescimo
-                              : Teacher1
-                          }
-                          sx={{ width: 50, height: 50, borderRadius: "50%" }}
-                        />
-                        <Box display="flex" flexDirection="column">
-                          <Typography variant="body2" fontWeight='bold' mb={0.5} fontSize={15}>{a.nomeAcrescimo} 
-                           {a.descricao && (
-                          <Typography fontSize={12}  align="justify">{a.descricao}</Typography>
-                          )}
-                          </Typography>
-                          <Typography variant="body2" fontWeight='bold' mb={0.5} fontSize={15}>R$ {a.preco?.toFixed(2)}</Typography>
-                          {a.quantidadeMaximaIndividual && (
-                          <Typography fontSize={11}>Max {a.quantidadeMaximaIndividual} item(s)</Typography>
-                          )}
-                        </Box>
-                      </Box>
-
-                      {/* Checkbox no canto direito */}
-                      <FormControlLabel
-                        labelPlacement="start"
-                        control={
-                          <Checkbox
-                            checked={qtd > 0}
-                            onChange={(e) => {
-                              const delta = e.target.checked ? 1 : -1;
-                              atualizarQuantidade(
-                                a.acrescimoId,
-                                delta,
-                                a.quantidadeMaximaIndividual
-                              );
-                            }}
-                            size="medium"
-                            sx={{
-                              m: 0,
-                              "& .MuiSvgIcon-root": { fontSize: 25 }, // aumenta a caixa
-                            }}
-                          />
-                        }
-                        label=""
-                      />
-                    </Box>
-                    <Divider mb={0.5}/>
-                  </Box>
-                  );
-                }
-
-                  // mais/menos
-                  return (
-                  <Box mb={1}>
-                    <Box
-                    key={a.acrescimoId}
-                    sx={{
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "space-between",
-                      mb: 1,
-                    }}
-                  >
-                    {/* Imagem + Nome/Preço juntos */}
-                    <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-                      <CardMedia
-                        component="img"
-                        image={
-                          a.imagemAcrescimo
-                            ? baseUrl +
-                              idCliente +
-                              "/" +
-                              produto.nomeCategoria +
-                              "/imagem/" +
-                              a.imagemAcrescimo
-                            : Teacher1
-                        }
-                        sx={{ width: 50, height: 50, borderRadius: "50%" }}
-                      />
-                      <Box display="flex" flexDirection="column">
-                          <Typography variant="body2" fontWeight='bold' mb={0.5} fontSize={15}>{a.nomeAcrescimo} 
-                           {a.descricao && (
-                          <Typography fontSize={12}  align="justify">{a.descricao}</Typography>
-                          )}
-                          </Typography>
-                          <Typography variant="body2" fontWeight='bold' mb={0.5} fontSize={15}>R$ {a.preco?.toFixed(2)}</Typography>
-                          {a.quantidadeMaximaIndividual && (
-                          <Typography fontSize={11}>Max {a.quantidadeMaximaIndividual} item(s)</Typography>
-                          )}
-                        </Box>
-                    </Box>
-
-                    {/* Quantidade no canto direito */}
-                    <Box
-                      labelPlacement="start"
-                      sx={{
-                        display: "flex",
-                        alignItems: "center",
-                        gap: 1,
-                        border: 1,
-                        borderRadius: 5,
-                        borderColor: "lightgrey",
-                        px: 1,
-                      }}
-                    >
-                      <IconButton
-                        size="small"
-                        onClick={() =>
-                         atualizarQuantidade(
-                            a.acrescimoId,
-                            -1,
-                            a.quantidadeMaximaIndividual
-                        )
-                        }
-                      >
-                        <RemoveIcon fontSize="small" color="error" />
-                      </IconButton>
-                      <Typography>{qtd}</Typography>
-                      <IconButton
-                        size="small"
-                        onClick={() =>
-                           atualizarQuantidade(
-                              a.acrescimoId,
-                              +1,
-                              a.quantidadeMaximaIndividual
-                          )
-                        }
-                      >
-                        <AddIcon fontSize="small" color="success" />
-                      </IconButton>
-                    </Box>
-                  </Box>
-                   <Divider/>
-                  </Box>
-                  );
-                })
-              )}
-            </Box>
-          </Box>
-          )}
-
-
+         
           {/* Grupos de opções */}
           {gruposDeOpcao.map((grupo) => (
             <Box key={grupo.id} sx={{ mb: 2 }}>
@@ -821,7 +573,257 @@ const atualizarOpcao = (grupoId, opcaoId, delta, maxGrupo, maxIndividual) => {
                 })
               )}
             </Box>
-          ))}
+          ))} 
+         
+         {/* Acréscimos */}
+         {acrescimos.length > 0 && (
+          <Box mb={2}>
+            <Typography variant="subtitle2" fontWeight="bold" gutterBottom bgcolor={"#ebebeb"} px={1.5} py={1}>
+              <div>Acréscimos </div>
+               {quantidadeMaximaPorProduto && (
+                <Typography fontSize={11}>Escolha até {quantidadeMaximaPorProduto} item(s)</Typography>
+            )}
+            </Typography>
+            <Box p={1}>
+            {quantidadeMaximaPorProduto === 1 ? (
+              // ✅ Caso 1: só pode escolher um → RadioGroup
+              <RadioGroup
+                value={Object.entries(quantidadesAcrescimos).find(([_, v]) => v > 0)?.[0] || ""}
+                onClick={(e) => {
+                  const idSelecionado = parseInt(e.target.value);
+                  const idAtual = Object.entries(quantidadesAcrescimos).find(([_, v]) => v > 0)?.[0];
+
+                  const novos = {};
+                  acrescimos.forEach((a) => {
+                    // Se clicar de novo no selecionado, zera todos
+                    if (idAtual === a.acrescimoId.toString() && a.acrescimoId === idSelecionado) {
+                      novos[a.acrescimoId] = 0;
+                    } else {
+                      novos[a.acrescimoId] = a.acrescimoId === idSelecionado ? 1 : 0;
+                    }
+                  });
+
+                  setQuantidadesAcrescimos(novos);
+                }}
+              >
+                {acrescimos.map((a) => (
+                  <Box mb={1}>
+                    <Box
+                      key={a.acrescimoId}
+                      sx={{
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "space-between",
+                        mb: 1,
+                      }}
+                    >
+                      {/* Imagem + Nome/Preço juntos */}
+                      <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                        <CardMedia
+                          component="img"
+                          image={
+                            a.imagemAcrescimo
+                              ? baseUrl +
+                                idCliente +
+                                "/" +
+                                produto.nomeCategoria +
+                                "/imagem/" +
+                                a.imagemAcrescimo
+                              : Teacher1
+                          }
+                          sx={{ width: 50, height: 50, borderRadius: "50%" }}
+                        />
+                        <Box display="flex" flexDirection="column">
+                          <Typography variant="body2" fontWeight='bold' mb={0.5} fontSize={15}>{a.nomeAcrescimo} 
+                           {a.descricao && (
+                          <Typography fontSize={12}  align="justify">{a.descricao}</Typography>
+                          )}
+                          </Typography>
+                          <Typography variant="body2" fontWeight='bold' mb={0.5} fontSize={15}>R$ {a.preco?.toFixed(2)}</Typography>
+                          {a.quantidadeMaximaIndividual && (
+                          <Typography fontSize={11}>Max {a.quantidadeMaximaIndividual} item(s)</Typography>
+                          )}
+                        </Box>
+                      </Box>
+                      {/* Radio sempre alinhado à direita */}
+                      <FormControlLabel
+                        labelPlacement="start"
+                        value={a.acrescimoId.toString()}
+                        control={<Radio />}
+                        label=""
+                      />
+                    </Box>
+                    <Divider/>
+                  </Box>
+                ))}
+              </RadioGroup>
+
+            ) : (
+              // ✅ Caso 2: pode escolher vários
+              acrescimos.map((a) => {
+                const qtd = quantidadesAcrescimos[a.acrescimoId] || 0;
+                const limiteIndividual = a.quantidadeMaximaIndividual ?? Infinity;
+
+                if (limiteIndividual === 1) {
+                  // checkbox
+                  return (
+                  <Box mb={1}>
+                    <Box
+                      key={a.acrescimoId}
+                      sx={{
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "space-between",
+                        mb: 1,
+                      }}
+                    >
+                      {/* Imagem + Nome/Preço juntos */}
+                      <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                        <CardMedia
+                          component="img"
+                          image={
+                            a.imagemAcrescimo
+                              ? baseUrl +
+                                idCliente +
+                                "/" +
+                                produto.nomeCategoria +
+                                "/imagem/" +
+                                a.imagemAcrescimo
+                              : Teacher1
+                          }
+                          sx={{ width: 50, height: 50, borderRadius: "50%" }}
+                        />
+                        <Box display="flex" flexDirection="column">
+                          <Typography variant="body2" fontWeight='bold' mb={0.5} fontSize={15}>{a.nomeAcrescimo} 
+                           {a.descricao && (
+                          <Typography fontSize={12}  align="justify">{a.descricao}</Typography>
+                          )}
+                          </Typography>
+                          <Typography variant="body2" fontWeight='bold' mb={0.5} fontSize={15}>R$ {a.preco?.toFixed(2)}</Typography>
+                          {a.quantidadeMaximaIndividual && (
+                          <Typography fontSize={11}>Max {a.quantidadeMaximaIndividual} item(s)</Typography>
+                          )}
+                        </Box>
+                      </Box>
+
+                      {/* Checkbox no canto direito */}
+                      <FormControlLabel
+                        labelPlacement="start"
+                        control={
+                          <Checkbox
+                            checked={qtd > 0}
+                            onChange={(e) => {
+                              const delta = e.target.checked ? 1 : -1;
+                              atualizarQuantidade(
+                                a.acrescimoId,
+                                delta,
+                                a.quantidadeMaximaIndividual
+                              );
+                            }}
+                            size="medium"
+                            sx={{
+                              m: 0,
+                              "& .MuiSvgIcon-root": { fontSize: 25 }, // aumenta a caixa
+                            }}
+                          />
+                        }
+                        label=""
+                      />
+                    </Box>
+                    <Divider mb={0.5}/>
+                  </Box>
+                  );
+                }
+
+                  // mais/menos
+                  return (
+                  <Box mb={1}>
+                    <Box
+                    key={a.acrescimoId}
+                    sx={{
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "space-between",
+                      mb: 1,
+                    }}
+                  >
+                    {/* Imagem + Nome/Preço juntos */}
+                    <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                      <CardMedia
+                        component="img"
+                        image={
+                          a.imagemAcrescimo
+                            ? baseUrl +
+                              idCliente +
+                              "/" +
+                              produto.nomeCategoria +
+                              "/imagem/" +
+                              a.imagemAcrescimo
+                            : Teacher1
+                        }
+                        sx={{ width: 50, height: 50, borderRadius: "50%" }}
+                      />
+                      <Box display="flex" flexDirection="column">
+                          <Typography variant="body2" fontWeight='bold' mb={0.5} fontSize={15}>{a.nomeAcrescimo} 
+                           {a.descricao && (
+                          <Typography fontSize={12}  align="justify">{a.descricao}</Typography>
+                          )}
+                          </Typography>
+                          <Typography variant="body2" fontWeight='bold' mb={0.5} fontSize={15}>R$ {a.preco?.toFixed(2)}</Typography>
+                          {a.quantidadeMaximaIndividual && (
+                          <Typography fontSize={11}>Max {a.quantidadeMaximaIndividual} item(s)</Typography>
+                          )}
+                        </Box>
+                    </Box>
+
+                    {/* Quantidade no canto direito */}
+                    <Box
+                      labelPlacement="start"
+                      sx={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 1,
+                        border: 1,
+                        borderRadius: 5,
+                        borderColor: "lightgrey",
+                        px: 1,
+                      }}
+                    >
+                      <IconButton
+                        size="small"
+                        onClick={() =>
+                         atualizarQuantidade(
+                            a.acrescimoId,
+                            -1,
+                            a.quantidadeMaximaIndividual
+                        )
+                        }
+                      >
+                        <RemoveIcon fontSize="small" color="error" />
+                      </IconButton>
+                      <Typography>{qtd}</Typography>
+                      <IconButton
+                        size="small"
+                        onClick={() =>
+                           atualizarQuantidade(
+                              a.acrescimoId,
+                              +1,
+                              a.quantidadeMaximaIndividual
+                          )
+                        }
+                      >
+                        <AddIcon fontSize="small" color="success" />
+                      </IconButton>
+                    </Box>
+                  </Box>
+                   <Divider/>
+                  </Box>
+                  );
+                })
+              )}
+            </Box>
+          </Box>
+          )}
 
           {/* Observações */}
           <Box mb={2}>

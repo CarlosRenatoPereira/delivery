@@ -70,30 +70,32 @@ function App() {
   }, [cliente]);
 
   // Marca categoria ao rolar
-  useEffect(() => {
-    const observer = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((entry) => {
-          if (entry.isIntersecting) {
-            const categoriaId = entry.target.getAttribute("data-categoria-id");
-            const categoria = categorias.find((c) => c.categoriaId.toString() === categoriaId);
-            if (categoria) {
-              setCategoriaSelecionada(categoria);
-            }
-          }
-        });
-      },
-      { threshold: 0.4,
-         rootMargin: "-100px 0px 0px 0px", // ajusta conforme altura do menu
-       }
-    );
+useEffect(() => {
+  const observer = new IntersectionObserver(
+    (entries) => {
+      const visibleEntry = entries.find((entry) => entry.isIntersecting);
+      if (visibleEntry) {
+        const categoriaId = visibleEntry.target.getAttribute("data-categoria-id");
+        const categoria = categorias.find((c) => c.categoriaId.toString() === categoriaId);
+        if (categoria) {
+          setCategoriaSelecionada(categoria);
+        }
+      }
+    },
+    {
+      root: null,
+      threshold: [0.95]
+    }
+  );
 
-    Object.values(sectionRefs.current).forEach((el) => {
-      if (el) observer.observe(el);
-    });
+  // Observa cada seção
+  categorias.forEach((cat) => {
+    const el = sectionRefs.current[cat.categoriaId];
+    if (el) observer.observe(el);
+  });
 
-    return () => observer.disconnect();
-  }, [categorias]);
+  return () => observer.disconnect(); // limpa ao desmontar
+}, [categorias]);
 
  const handleCategoriaClick = (categoriaId) => {
   const el = sectionRefs.current[categoriaId];
@@ -102,13 +104,19 @@ function App() {
     const offset = 40; // altura do menu
     const maxScroll = document.body.scrollHeight - window.innerHeight;
     const target = Math.min(y - offset, maxScroll);
-    
+
     window.scrollTo({
       top: target,
       behavior: "smooth",
     });
   }
+  // 👇 força seleção no clique
+  const categoria = categorias.find((c) => c.categoriaId === categoriaId);
+  if (categoria) {
+    setCategoriaSelecionada(categoria);
+  }
 };
+
 
 useEffect(() => {
   if (!categoriaSelecionada) return;
@@ -126,11 +134,13 @@ useEffect(() => {
   if (loading) return <Loading mensagem="Buscando dados da loja..." />;
 
   return (
-    <Box sx={{ display: "flex", flexDirection: "column", minHeight: "100vh"}}>
+    <Box sx={{ with:"100%", p:0,m:0}}>
       {/* Cabeçalho e informações */}
       <Cabecalho nome={cliente.nome} />
+   <Box sx={{ display: "flex", flexDirection: "column", minHeight: "100vh", maxWidth:"1200px",
+          width: "100%",
+          mx: "auto"}}>
       <Informacoes />
-
       {/* Menu horizontal de categorias */}
       <Box
         sx={{
@@ -155,6 +165,7 @@ useEffect(() => {
               display: "inline-flex",
               cursor: "pointer",
               px: 2,
+              m:0,
               borderBottom:
                 categoriaSelecionada?.categoriaId === cat.categoriaId
                   ? "2px solid #940c0c"
@@ -179,17 +190,17 @@ useEffect(() => {
       </Box>
 
       {/* Lista de categorias + produtos */}
-      <Box sx={{ flex: 1, px: 1, pb: "1000px" }}>
+      <Box sx={{ flex: 1, px: 1, pb: "500px" }}>
         {categorias.map((cat) => (
           <Box
             key={cat.categoriaId}
             ref={(el) => (sectionRefs.current[cat.categoriaId] = el)}
             data-categoria-id={cat.categoriaId}
-            sx={{ scrollMarginTop: "200px", mb: 5 }}
+            sx={{ scrollMarginTop: "80px", mb: 5 }}
           >
             <Typography
               variant="h6"
-              sx={{ ml: 2, mt: 1, fontWeight: "bold", color: "#444" }}
+              sx={{ m:0, mt: 1, fontWeight: "bold", color: "#444" }}
             >
               {cat.nomeCategoria}
             </Typography>
@@ -230,6 +241,7 @@ useEffect(() => {
         </BottomNavigation>
       </Paper>
     </Box>
+   </Box>
   );
 }
 

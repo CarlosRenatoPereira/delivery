@@ -23,7 +23,6 @@ const Carrinho = () => {
   const cartEndRef = useRef(null);
   const location = useLocation();
   const navigate = useNavigate();
-
   const voltar = () => navigate(`/loja/${clienteInfo.slug}`);
 
   // 🔑 gera chave única do item
@@ -143,12 +142,40 @@ const Carrinho = () => {
                     style={{ width: 50, height: 50, borderRadius: "50%" }}
                   />
                   <Box sx={{ flex: 1 }}>
-                    <Typography variant="body1">{item.name}</Typography>
-                    {item.observacoes && (
-                      <Typography variant="body2" color="text.secondary" sx={{ fontStyle: "italic" }}>
-                        Obs: {item.observacoes}
-                      </Typography>
-                    )}
+                    <Typography variant="body1" sx={{ fontWeight: "bold" }}>{item.name}</Typography>
+                     {item.opcoes.length > 0 && (
+  <Box>
+    {(() => {
+      let ultimoGrupo = null;
+      return item.opcoes.map((op, idx) => {
+        const mostrarGrupo = ultimoGrupo !== op.idGrupo;
+        ultimoGrupo = op.idGrupo;
+
+        return (
+          <Box key={idx}>
+            {mostrarGrupo && (
+              <Typography
+                variant="body2"
+                color="text.secondary"
+                sx={{ fontWeight: "bold" }}
+              >
+                {op.nomeGrupo}
+              </Typography>
+            )}
+            <Typography
+              variant="body2"
+              color="text.secondary"
+              sx={{ fontStyle: "italic" }}
+            >
+              {op.quantidade}x {op.nomeOpcao}
+            </Typography>
+          </Box>
+        );
+      });
+    })()}
+  </Box>
+)}
+
                     {item.acrescimos.length >0 && (
                       <Box>
                         <Typography variant="body2" color="text.secondary" sx={{ fontWeight: "bold" }}>
@@ -156,10 +183,15 @@ const Carrinho = () => {
                         </Typography>
                         {item.acrescimos.map((ac) => (
                           <Typography variant="body2" color="text.secondary" sx={{ fontStyle: "italic" }}>
-                            {ac.nomeAcrescimo} R$ {ac.preco.toFixed(2)} x {ac.quantidade}
+                            {ac.quantidade}x {ac.nomeAcrescimo}
                           </Typography>
                     ))}
                     </Box>
+                    )}
+                     {item.observacoes && (
+                      <Typography variant="body2" color="text.secondary" sx={{ fontStyle: "italic" }}>
+                        Obs: {item.observacoes}
+                      </Typography>
                     )}
                     <Typography variant="body2" color="text.secondary" fontWeight="bold">
                       R$ {item.price.toFixed(2)} × {item.quantity} = R$ {(item.price * item.quantity).toFixed(2)}

@@ -73,12 +73,13 @@ display: block;
 }
 
 .header {
-  width: 100%;
+  max-width: 100%;
   height: 50px;
   background-color: rgb(238, 53, 53);
-  display: grid;
-  grid-template-columns: 2% 15% 69%;
+  display: flex;
+  gap: 20px;
   align-items: center;
+  padding-left: 10px;
 }
 
 .nomeEstabelecimento {
@@ -101,16 +102,15 @@ display: block;
 }
 
 .informacoes {
-  width: 100%;
+  max-width: 100%;
   height: 30px;
   background-color: rgba(255, 255, 255, 0.979);
   display: grid;
-  grid-template-columns: 2% 39% 33% 25%;
+  grid-template-columns:39% 33% 25%;
   align-items: center;
 }
 
 .infoHorario {
-  border-radius: 3%;
   background-color: rgb(137, 243, 146);
   font-size: 9px;
   font-weight: bold;
@@ -120,6 +120,7 @@ display: block;
   align-items: center; 
   justify-content: center;
   opacity: 0.4;
+  margin-left: 5px;
 }
 .infoPedidoMinimo {
   font-size: 9px;

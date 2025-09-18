@@ -3,8 +3,10 @@ import { BrowserRouter, Route, Routes } from 'react-router-dom';
 import App from '../App.jsx';
 import SobreLoja from './SobreLoja.jsx';
 import Carrinho from './Carrinho.jsx';
+import AvancarCarrinhoNomeWhatsapp from './AvancarCarrinhoNomeWhatsapp.jsx';
 import LoginCadastro from './Cliente/LoginCadastro.jsx';
 import CadastroProduto from './Cliente/CadastroProduto.jsx';
+import AvancarCarrinhoEnderecoEntrega from  './AvancarCarrinhoEnderecoEntrega.jsx';
 function Rotas() {
   return (
     <BrowserRouter>
@@ -14,6 +16,8 @@ function Rotas() {
             <Route path='/logincadastro' element={<LoginCadastro/>}></Route>
              <Route path='/cadastroProduto' element={<CadastroProduto/>}></Route>
             <Route path='/Carrinho' element={<Carrinho/>}></Route>
+            <Route path='/nomewhatsapp' element={<AvancarCarrinhoNomeWhatsapp/>}></Route>
+            <Route path='/enderecoentrega' element={<AvancarCarrinhoEnderecoEntrega/>}></Route>
             <Route path='*' element={<h1>Not Found</h1>}></Route>
         </Routes>
     </BrowserRouter>

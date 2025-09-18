@@ -6,7 +6,6 @@ import Logo from '../imagens/marcelinho_lanches.png';
 function Cabecalho({nome}) {
   return (
     <div className="header">
-      <div></div>
       <div className="round">
       <img src={Logo} className="imgHeader"/>
       </div>
