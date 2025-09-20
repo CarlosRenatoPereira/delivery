@@ -414,28 +414,7 @@ const confirmarSalvar = () => {
   };
 
   return (
-    <><Box 
-          sx={{ 
-            position: 'sticky', 
-            top: 0, 
-            zIndex: 1000, 
-            backgroundColor: 'white', // importante para não "sumir" ao rolar
-            display: 'flex', 
-            alignItems: 'center', 
-            justifyContent: 'initial', 
-            gap: 2, 
-            py: 1,
-            boxShadow: 1,
-            paddingLeft: 2
-          }}
-        >
-        <img 
-          src="/imagens/baratíssimo.png" 
-          alt="Logo" 
-          style={{ width: 40, height: 40, objectFit: 'contain' }} 
-        />
-        <h1 style={{ fontSize: '1.5rem', fontWeight: 'bold', margin: 0 }}>Cadastro de Produtos</h1>
-      </Box>
+    <>
     <Box sx={{ maxWidth: 1200, mx: 'auto', mt: 2, px: 1 }}>
       <Box 
         sx={{ 
@@ -446,7 +425,7 @@ const confirmarSalvar = () => {
           mb: 1 
         }}
       >
-        <h1 style={{ fontSize: '1.5rem', fontWeight: 'bold', margin: 0 }}>Cardápio</h1>
+        <h1 style={{ fontSize: '1.5rem', fontWeight: 'bold', margin: 0,color: "#005b8f" }}>Cardápio</h1>
         <img 
           src="/imagens/cardapio.png" 
           alt="Logo" 
